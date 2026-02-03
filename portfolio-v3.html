@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geospatial Portfolio - Jürgen van Wessel</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #E8D4A2;
+            color: #5C4A3A;
+            padding: 60px 80px;
+            min-height: 100vh;
+        }
+
+        .page-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 35%;
+            gap: 60px;
+            align-items: start;
+        }
+
+        .content {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .text-section {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .profile {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .profile-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #6B5442;
+        }
+
+        .profile-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #5C4A3A;
+            letter-spacing: 0.5px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            line-height: 1.3;
+            margin-bottom: 20px;
+            color: #5C4A3A;
+            font-weight: 400;
+        }
+
+        .subheading {
+            font-size: 1rem;
+            color: #B8342E;
+            letter-spacing: 2px;
+            font-weight: 400;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subheading-hex {
+            width: 10.39px;
+            height: 12px;
+            background: #B8342E;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            flex-shrink: 0;
+        }
+
+        .description {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #5C4A3A;
+        }
+
+        .description p {
+            margin-bottom: 12px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+            margin: 20px 0;
+            font-size: 0.85rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            color: #B8342E;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .stat-label {
+            color: #8B7355;
+            letter-spacing: 0.5px;
+        }
+
+        .details {
+            margin-top: 20px;
+            border-left: 2px solid #B8342E;
+            padding-left: 15px;
+        }
+
+        .details-toggle {
+            color: #B8342E;
+            cursor: pointer;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            user-select: none;
+        }
+
+        .details-toggle:hover {
+            color: #8B2822;
+        }
+
+        .details-toggle::before {
+            content: '▸ ';
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+
+        .details-toggle.open::before {
+            transform: rotate(90deg);
+        }
+
+        .details-content {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #6B5442;
+            display: none;
+            margin-top: 10px;
+        }
+
+        .details-content.open {
+            display: block;
+        }
+
+        .details-content p {
+            margin-bottom: 10px;
+        }
+
+        .image-placeholder {
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            margin-top: 30px;
+        }
+
+        .project-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* MAP */
+        .hero {
+            position: relative;
+            align-self: start;
+        }
+
+        .map-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #map.debug-visible {
+            opacity: 1;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: all;
+            z-index: 1000;
+            transition: opacity 0.2s ease;
+        }
+
+        .leaflet-control-attribution {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .leaflet-control-attribution.debug-visible {
+            opacity: 1;
+        }
+
+        /* DEBUG */
+        .debug-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(107, 84, 66, 0.9);
+            color: #E8D4A2;
+            padding: 10px;
+            font-size: 12px;
+            max-width: 300px;
+            z-index: 2000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .debug-info.visible {
+            opacity: 1;
+        }
+
+        /* KEYMAP TOOLTIP */
+        .keymap-tooltip {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(107, 84, 66, 0.95);
+            color: #E8D4A2;
+            padding: 15px 20px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            line-height: 1.6;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 3000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-width: 200px;
+        }
+
+        .keymap-tooltip.visible {
+            opacity: 1;
+        }
+
+        .keymap-section {
+            margin-bottom: 10px;
+        }
+
+        .keymap-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .keymap-title {
+            font-weight: 600;
+            color: #B8342E;
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+        }
+
+        .keymap-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 0;
+        }
+
+        .keymap-key {
+            background: rgba(232, 212, 162, 0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            margin-right: 8px;
+            border: 1px solid rgba(232, 212, 162, 0.3);
+        }
+
+        .keymap-action {
+            flex: 1;
+            text-align: right;
+        }
+
+        /* GIS MODAL */
+        .gis-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(92, 74, 58, 0.95);
+            z-index: 5000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .gis-modal-overlay.visible {
+            display: flex;
+        }
+
+        .gis-modal {
+            background: #E8D4A2;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .gis-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #5C4A3A;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+
+        .gis-modal-close:hover {
+            color: #B8342E;
+        }
+
+        .gis-modal h2 {
+            color: #B8342E;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .gis-modal h3 {
+            color: #5C4A3A;
+            font-size: 1.2rem;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .gis-modal p {
+            line-height: 1.7;
+            margin-bottom: 15px;
+            color: #5C4A3A;
+        }
+
+        .gis-modal code {
+            background: #D4C4A4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .gis-modal::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .gis-modal::-webkit-scrollbar-track {
+            background: #D4C4A4;
+        }
+
+        .gis-modal::-webkit-scrollbar-thumb {
+            background: #8B7355;
+            border-radius: 4px;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 900px) {
+            body {
+                padding: 40px;
+            }
+
+            .page-wrapper {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .map-container {
+                height: 500px;
+                max-height: 60vh;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- PAGE LAYOUT -->
+    <div class="page-wrapper">
+        <div class="content">
+            <div class="text-section">
+                <div class="profile">
+                    <img src="profile_avatar.png" alt="Jürgen van Wessel" class="profile-image">
+                    <div class="profile-name">Jürgen van Wessel</div>
+                </div>
+
+                <div>
+                    <h1>I defended a $300K payment dispute on a 100,000m³ earthworks program with multi-pipeline spatial validation</h1>
+                    <div class="subheading">
+                        <span class="subheading-hex"></span>
+                        Scotland // Aberdeen Western Peripheral Route
+                    </div>
+                </div>
+                
+                <div class="description">
+                    <p>When the principal consultant challenged our topsoil volume calculations without independent measurements, I rebuilt confidence through rigorous cross-validation rather than defensive revisions.</p>
+                    
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-number">100,000m³</span>
+                            <span class="stat-label">topsoil stripped</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">4 geo-pipelines</span>
+                            <span class="stat-label">to validate volume calculations</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">zero</span>
+                            <span class="stat-label">further earthworks QS issues</span>
+                        </div>
+                    </div>
+                    
+                    <p><strong>Result:</strong> Original invoice accepted without revision. Client confidence strengthened. Improved methodology became project standard for heritage on the $1.4B scheme.</p>
+                </div>
+            </div>
+            
+            <div class="details">
+                <div class="details-toggle" onclick="toggleDetails()">Technical Details</div>
+                <div class="details-content" id="detailsContent">
+                    <p><strong>Context:</strong> 4 year involvement on Scotland's largest infrastructure project, managing survey and spatial data for the whole scheme and all operations for the northern half. Embedded surveyors using Trimble R6 GPS and Leica total stations set out and recorded thousands of machine trial trenches and excavation features.</p>
+                    
+                    <p><strong>Payment structure:</strong> Volume-based billing for topsoil stripping, calculated on compressed (in-ground) volumes. Regular GPS topographic surveys captured pre-strip and daily progress.</p>
+                    
+                    <p><strong>The challenge:</strong> One site's calculations had been genuinely over-estimated due to complex topography and insufficient survey point density. Rather than accept the loss, I used it as an opportunity to validate everything.</p>
+                    
+                    <p><strong>Validation geo-pipeline:</strong></p>
+                    <ol style="margin-left: 20px; margin-bottom: 10px;">
+                        <li>On-board GPS calculations (Trimble Access)</li>
+                        <li>Trimble Business Center processing</li>
+                        <li>Surfer grid-based surface models</li>
+                        <li>KTF (client's software) cross-check</li>
+                    </ol>
+                    <ul style="margin-left: 40px; margin-bottom: 10px;">
+                        <li>Sense-checked with Excel-driven boundary analysis for upper/lower bounds</li>
+                        <li>Further validated with physical spoil heap surveys with expansion factors</li>
+                    </ul>
+                    
+                    <p><strong>Findings:</strong> Averaged results across all pipelines, removed outliers where model quality was questionable. We had actually slightly under-charged the client on average across all sites.</p>
+                    
+                    <p><strong>Process improvements:</strong> Tightened QA procedures and documentation to incorporate redundancy in validation. Today's approach would use drone photogrammetry with automated processing and parallel validation pipelines.</p>
+                </div>
+            </div>
+            
+            <div class="image-placeholder">
+                <img src="excavator.jpg" alt="Topsoil stripping on Aberdeen Western Peripheral Route" class="project-image">
+            </div>
+        </div>
+        
+        <div class="hero">
+            <div class="map-container" id="mapContainer">
+                <div id="map"></div>
+                <canvas id="canvas"></canvas>
+                <div class="debug-info" id="debugInfo"></div>
+                <div class="keymap-tooltip" id="keymapTooltip">
+                    <div class="keymap-section">
+                        <div class="keymap-title">MAP NAVIGATION</div>
+                        <div class="keymap-item">
+                            <div><span class="keymap-key">W</span><span class="keymap-key">A</span><span class="keymap-key">S</span><span class="keymap-key">D</span></div>
+                            <div class="keymap-action">Pan</div>
+                        </div>
+                        <div class="keymap-item">
+                            <div><span class="keymap-key">+</span><span class="keymap-key">−</span></div>
+                            <div class="keymap-action">Zoom</div>
+                        </div>
+                    </div>
+                    <div class="keymap-section">
+                        <div class="keymap-title">DEBUG LAYERS</div>
+                        <div class="keymap-item">
+                            <span class="keymap-key">0</span>
+                            <div class="keymap-action">Animation</div>
+                        </div>
+                        <div class="keymap-item">
+                            <span class="keymap-key">1</span>
+                            <div class="keymap-action">Base map</div>
+                        </div>
+                        <div class="keymap-item">
+                            <span class="keymap-key">2</span>
+                            <div class="keymap-action">Boundaries</div>
+                        </div>
+                        <div class="keymap-item">
+                            <span class="keymap-key">3</span>
+                            <div class="keymap-action">Point grid</div>
+                        </div>
+                        <div class="keymap-item">
+                            <span class="keymap-key">4</span>
+                            <div class="keymap-action">Hexagons</div>
+                        </div>
+                    </div>
+                    <div class="keymap-section">
+                        <div class="keymap-title">INFO</div>
+                        <div class="keymap-item">
+                            <span class="keymap-key">i</span>
+                            <div class="keymap-action">GIS writeup</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GIS MODAL -->
+    <div class="gis-modal-overlay" id="gisModal">
+        <div class="gis-modal">
+            <button class="gis-modal-close" onclick="closeGISModal()">×</button>
+            <h2>How This Map Works</h2>
+            
+            <p>This hexagonal visualization is a fully functional geospatial system, built entirely as a single HTML file. No backend, no database, no tile server for the boundaries — just client-side GIS running in the browser.</p>
+            
+            <h3>Coordinate Systems & Projection</h3>
+            <p>The underlying map tiles render in <code>EPSG:3857</code> (Web Mercator), which is the standard for web mapping. Country boundary polygons are stored as <code>EPSG:4326</code> (WGS84 lon/lat) GeoJSON. On every render pass, each boundary vertex is projected from geographic coordinates into pixel space using Leaflet's <code>latLngToContainerPoint()</code> — a fast Web Mercator forward projection. The hexagon grid is then tessellated entirely in screen space, with each centre point tested against the projected polygons.</p>
+            
+            <h3>Two-Phase Boundary Loading</h3>
+            <p>To keep the page feeling instant while still supporting worldwide panning, the boundaries load in two phases. A simplified UK/Ireland polygon (~500 vertices, derived from Natural Earth 110m data) is embedded directly in the HTML. This lets the Scotland hexagon animation run within a couple hundred milliseconds of page load — no network request required.</p>
+            <p>In the background, the full worldwide Natural Earth dataset fetches asynchronously. Once it arrives, a spatial index is built and the system silently upgrades. The silver navigation hexagon only appears at this point, as a subtle signal that worldwide mode is ready.</p>
+            
+            <h3>Spatial Indexing</h3>
+            <p>The worldwide dataset contains ~195 country polygons. Without optimisation, every pan or zoom would require projecting all of them into screen coordinates — most of which aren't visible. To solve this, each country's bounding box is indexed in a simple R-tree structure on load. Before any coordinate conversion, a viewport query returns only the countries whose bounding boxes intersect the current map extent. Typically that's 1–5 polygons instead of 195.</p>
+            
+            <h3>Hexagonal Tessellation & Point-in-Polygon</h3>
+            <p>The hex grid uses flat-top orientation with standard offset coordinates: <code>hexWidth = √3 × size</code>, <code>rowHeight = 1.5 × size</code>, with odd rows shifted by <code>hexWidth / 2</code>. Each hex centre is tested against the screen-space boundary polygons using a ray-casting algorithm — casting a horizontal ray and counting edge crossings to determine inside/outside. Aberdeen (57.15°N, 2.09°W) is flagged within a 0.3° radius and rendered in red.</p>
+            
+            <h3>Animation</h3>
+            <p>Each hexagon animates via a <code>scaleY = cos(θ)</code> transform, creating the appearance of flipping in from edge-on. The animation staggers by row (50ms per row) with cubic ease-out and a small sine-wave bounce at the end. The entire animation re-runs whenever hexagons are regenerated — on pan, zoom, or resize.</p>
+            
+            <h3>Resize Handling</h3>
+            <p>Window resize is the trickiest part. The map container height is bound to the text column height, so resizing can change both simultaneously. All canvas drawing is suspended during resize (an <code>isResizing</code> flag gates every draw call), the canvas is hidden, and recalculation only fires after a 300ms debounce once the layout has settled. This prevents the stutter you'd otherwise see from repeated expensive polygon operations mid-resize.</p>
+            
+            <h3>Why a Single File?</h3>
+            <p>This is a portfolio piece, not a production application. The constraint of a single HTML file is actually a feature — it's portable, requires no build step, and can be opened from anywhere. The GIS techniques used here (spatial indexing, viewport culling, progressive loading) are the same ones you'd reach for in a production system, just implemented in a context where they have to pull their weight without any infrastructure behind them.</p>
+            
+            <p style="margin-top: 30px; font-size: 0.85rem; color: #8B7355; font-style: italic;">Press Escape or click outside to close.</p>
+        </div>
+    </div>
+
+    <!-- LEAFLET -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    // ============================================================
+    // STATE
+    // ============================================================
+    let map, canvas, ctx;
+    let debugMode = 0;
+    let hexagons = [];
+    let animationStartTime = null;
+    let isResizing = false;
+    let worldwideLoaded = false;
+    let navHexRevealed = false;     // one-shot: nav hex pop-in has fired
+    let spatialIndex = null;       // Built once worldwide data arrives
+    let geoJsonData = null;        // Current active boundary dataset
+
+    // ============================================================
+    // EMBEDDED UK/IRELAND BOUNDARIES (Natural Earth 110m, ~500 verts)
+    // Used for instant first render. Replaced once worldwide loads.
+    // ============================================================
+    const EMBEDDED_BOUNDARIES = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"ADMIN":"United Kingdom"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-5.662,54.555],[-6.198,53.868],[-6.954,54.074],[-7.572,54.06],[-7.366,54.596],[-7.572,55.132],[-6.734,55.173],[-5.662,54.555]]],[[[-3.005,58.635],[-4.074,57.553],[-3.055,57.69],[-1.959,57.685],[-2.22,56.87],[-3.119,55.974],[-2.085,55.91],[-2.006,55.805],[-1.115,54.625],[-0.43,54.464],[0.185,53.325],[0.47,52.93],[1.682,52.74],[1.56,52.1],[1.051,51.807],[1.45,51.289],[0.55,50.766],[-0.788,50.775],[-2.49,50.5],[-2.956,50.697],[-3.617,50.228],[-4.543,50.342],[-5.245,49.96],[-5.777,50.16],[-4.31,51.21],[-3.415,51.426],[-3.423,51.427],[-4.984,51.593],[-5.267,51.991],[-4.222,52.301],[-4.77,52.84],[-4.58,53.495],[-3.094,53.404],[-3.092,53.404],[-2.945,53.985],[-3.615,54.601],[-3.63,54.615],[-4.844,54.791],[-5.083,55.062],[-4.719,55.508],[-5.048,55.784],[-5.586,55.311],[-5.645,56.275],[-6.15,56.785],[-5.787,57.819],[-5.01,58.63],[-4.211,58.551],[-3.005,58.635]]]]}},{"type":"Feature","properties":{"ADMIN":"Ireland"},"geometry":{"type":"Polygon","coordinates":[[[-6.198,53.868],[-6.033,53.153],[-6.789,52.26],[-8.562,51.669],[-9.977,51.82],[-9.166,52.865],[-9.689,53.881],[-8.328,54.665],[-7.572,55.132],[-7.366,54.596],[-7.572,54.06],[-6.954,54.074],[-6.198,53.868]]]}}]};
+
+    // ============================================================
+    // SPATIAL INDEX (simple bounding-box R-tree)
+    // ============================================================
+    class SpatialIndex {
+        constructor() { this.items = []; }
+
+        insert(minLng, minLat, maxLng, maxLat, index) {
+            this.items.push({ minLng, minLat, maxLng, maxLat, index });
+        }
+
+        query(west, south, east, north) {
+            const results = [];
+            for (const item of this.items) {
+                if (item.maxLng >= west && item.minLng <= east &&
+                    item.maxLat >= south && item.minLat <= north) {
+                    results.push(item.index);
+                }
+            }
+            return results;
+        }
+    }
+
+    function buildSpatialIndex(features) {
+        const idx = new SpatialIndex();
+        features.forEach((feature, i) => {
+            if (!feature.geometry) return;
+            let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+
+            const scan = (coords) => {
+                for (const [lng, lat] of coords) {
+                    if (lng < minLng) minLng = lng;
+                    if (lng > maxLng) maxLng = lng;
+                    if (lat < minLat) minLat = lat;
+                    if (lat > maxLat) maxLat = lat;
+                }
+            };
+
+            if (feature.geometry.type === 'Polygon') {
+                feature.geometry.coordinates.forEach(scan);
+            } else if (feature.geometry.type === 'MultiPolygon') {
+                feature.geometry.coordinates.forEach(poly => poly.forEach(scan));
+            }
+
+            idx.insert(minLng, minLat, maxLng, maxLat, i);
+        });
+        return idx;
+    }
+
+    // ============================================================
+    // GEOMETRY: project boundaries to screen polygons
+    // Uses spatial index if available to filter first
+    // ============================================================
+    function getScreenPolygons() {
+        if (!geoJsonData || !map) return [];
+
+        // Determine which features to process
+        let features;
+        if (spatialIndex) {
+            const b = map.getBounds();
+            const indices = spatialIndex.query(b.getWest(), b.getSouth(), b.getEast(), b.getNorth());
+            features = indices.map(i => geoJsonData.features[i]);
+        } else {
+            features = geoJsonData.features;
+        }
+
+        const polygons = [];
+
+        features.forEach(feature => {
+            if (!feature.geometry) return;
+
+            const projectRing = (ring) => {
+                const screen = [];
+                for (const [lng, lat] of ring) {
+                    const pt = map.latLngToContainerPoint([lat, lng]);
+                    if (pt && !isNaN(pt.x) && !isNaN(pt.y)) {
+                        screen.push([pt.x, pt.y]);
+                    }
+                }
+                return screen.length >= 3 ? screen : null;
+            };
+
+            if (feature.geometry.type === 'Polygon') {
+                feature.geometry.coordinates.forEach(ring => {
+                    const p = projectRing(ring);
+                    if (p) polygons.push(p);
+                });
+            } else if (feature.geometry.type === 'MultiPolygon') {
+                feature.geometry.coordinates.forEach(poly =>
+                    poly.forEach(ring => {
+                        const p = projectRing(ring);
+                        if (p) polygons.push(p);
+                    })
+                );
+            }
+        });
+
+        return polygons;
+    }
+
+    // ============================================================
+    // POINT-IN-POLYGON (ray casting)
+    // ============================================================
+    function pointInPolygon(px, py, polygon) {
+        let inside = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+            const xi = polygon[i][0], yi = polygon[i][1];
+            const xj = polygon[j][0], yj = polygon[j][1];
+            if (((yi > py) !== (yj > py)) &&
+                (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) {
+                inside = !inside;
+            }
+        }
+        return inside;
+    }
+
+    function isOverLand(x, y, screenPolygons) {
+        for (const poly of screenPolygons) {
+            if (pointInPolygon(x, y, poly)) return true;
+        }
+        return false;
+    }
+
+    // ============================================================
+    // HEXAGON CLASS
+    // ============================================================
+    class Hexagon {
+        constructor(x, y, size, row, latLng, isNavHex) {
+            this.x = x;
+            this.y = y;
+            this.size = size;
+            this.row = row;
+            this.latLng = latLng;
+            this.isNavHex = isNavHex || false;
+            this.rotation = 90;
+            this.opacity = 0;
+            this.animationDelay = row * 50;
+            this.startTime = null;
+
+            // Aberdeen detection
+            this.isAberdeen = false;
+            if (latLng && !this.isNavHex) {
+                const d = Math.sqrt(Math.pow(latLng.lat - 57.15, 2) + Math.pow(latLng.lng + 2.09, 2));
+                this.isAberdeen = d < 0.3;
+            }
+        }
+
+        getPoints() {
+            const pts = [];
+            for (let i = 0; i < 6; i++) {
+                const a = Math.PI / 3 * i - Math.PI / 6;
+                pts.push([this.x + this.size * Math.cos(a), this.y + this.size * Math.sin(a)]);
+            }
+            return pts;
+        }
+
+        startAnimation(now) {
+            if (!this.startTime) this.startTime = now + this.animationDelay;
+        }
+
+        update(now) {
+            if (!this.startTime || now < this.startTime) return false;
+            const elapsed = now - this.startTime;
+            const duration = 560;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+
+            this.rotation = 90 - (90 * easeOut);
+            if (progress > 0.6) {
+                const bp = (progress - 0.6) / 0.4;
+                this.rotation -= Math.sin(bp * Math.PI) * 8;
+            }
+            this.opacity = easeOut;
+            return progress >= 1;
+        }
+
+        draw(ctx) {
+            ctx.save();
+
+            // Nav hex: hidden until worldwide loaded, then one-shot pop-in
+            if (this.isNavHex) {
+                if (!worldwideLoaded) { ctx.restore(); return; }
+
+                // After the first pop-in completes, just draw at full size forever
+                if (navHexRevealed) {
+                    ctx.globalAlpha = 1;
+                    const pts = this.getPoints();
+                    const buf = 1.5;
+                    ctx.fillStyle = '#C0C0C0';
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + (pts[0][0] - this.x) * (1 - buf / this.size), this.y + (pts[0][1] - this.y) * (1 - buf / this.size));
+                    for (let i = 1; i < pts.length; i++) {
+                        ctx.lineTo(this.x + (pts[i][0] - this.x) * (1 - buf / this.size), this.y + (pts[i][1] - this.y) * (1 - buf / this.size));
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                    return;
+                }
+
+                // One-shot pop-in animation
+                if (!this.navPopStart) {
+                    this.navPopStart = performance.now();
+                }
+                const elapsed = performance.now() - this.navPopStart;
+                const dur = 500;
+                const t = Math.min(elapsed / dur, 1);
+                // Elastic overshoot easing
+                const eased = t === 1 ? 1 : 1 - Math.pow(2, -10 * t) * Math.cos((t * 10 - 0.75) * (2 * Math.PI) / 3);
+                const scale = 0.4 + 0.6 * eased;   // 0.4 → 1
+                const alpha = Math.min(eased * 1.2, 1); // slightly faster fade
+
+                if (t >= 1) navHexRevealed = true;  // pop-in done, lock it
+
+                ctx.translate(this.x, this.y);
+                ctx.scale(scale, scale);
+                ctx.translate(-this.x, -this.y);
+                ctx.globalAlpha = alpha;
+
+                const pts = this.getPoints();
+                const buf = 1.5;
+                ctx.fillStyle = '#C0C0C0';
+                ctx.beginPath();
+                ctx.moveTo(this.x + (pts[0][0] - this.x) * (1 - buf / this.size), this.y + (pts[0][1] - this.y) * (1 - buf / this.size));
+                for (let i = 1; i < pts.length; i++) {
+                    ctx.lineTo(this.x + (pts[i][0] - this.x) * (1 - buf / this.size), this.y + (pts[i][1] - this.y) * (1 - buf / this.size));
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+                return;
+            }
+
+            // --- Regular land hexagons: existing flip animation ---
+            const scaleY = Math.cos(this.rotation * Math.PI / 180);
+            ctx.translate(this.x, this.y);
+            ctx.scale(1, scaleY);
+            ctx.translate(-this.x, -this.y);
+            ctx.globalAlpha = this.opacity;
+
+            const pts = this.getPoints();
+            const buf = 1.5;
+            ctx.fillStyle = this.isAberdeen ? '#B8342E' : '#6B5442';
+
+            ctx.beginPath();
+            ctx.moveTo(
+                this.x + (pts[0][0] - this.x) * (1 - buf / this.size),
+                this.y + (pts[0][1] - this.y) * (1 - buf / this.size)
+            );
+            for (let i = 1; i < pts.length; i++) {
+                ctx.lineTo(
+                    this.x + (pts[i][0] - this.x) * (1 - buf / this.size),
+                    this.y + (pts[i][1] - this.y) * (1 - buf / this.size)
+                );
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        containsPoint(px, py) {
+            return pointInPolygon(px, py, this.getPoints());
+        }
+    }
+
+    // ============================================================
+    // HEXAGON GENERATION
+    // ============================================================
+    function generateHexagons() {
+        const screenPolys = getScreenPolygons();
+        hexagons = [];
+        window.navHex = null;
+
+        const hexSize = 12;
+        const hexWidth = Math.sqrt(3) * hexSize;
+        const rowHeight = hexSize * 1.5;
+
+        let rowIndex = 0;
+        let maxRow = 0;
+        let maxXForBottomRow = 0;
+
+        for (let y = hexSize; y <= canvas.height - hexSize; y += rowHeight) {
+            const xOffset = (rowIndex % 2) * (hexWidth / 2);
+            let hasHex = false;
+
+            for (let x = hexSize + xOffset; x <= canvas.width - hexSize; x += hexWidth) {
+                if (isOverLand(x, y, screenPolys)) {
+                    const latLng = map.containerPointToLatLng([x, y]);
+                    hexagons.push(new Hexagon(x, y, hexSize, rowIndex, latLng, false));
+                    hasHex = true;
+
+                    if (y > canvas.height - hexSize * 2) {
+                        maxXForBottomRow = Math.max(maxXForBottomRow, x);
+                    }
+                }
+            }
+
+            if (hasHex) maxRow = rowIndex;
+            rowIndex++;
+        }
+
+        // Nav hex: snap to grid on bottom row, rightmost position
+        const navY = hexSize + (maxRow * rowHeight);
+        const navXOffset = (maxRow % 2) * (hexWidth / 2);
+        let navX = hexSize + navXOffset;
+        for (let x = hexSize + navXOffset; x <= canvas.width - hexSize; x += hexWidth) {
+            if (x >= maxXForBottomRow - hexWidth && x + hexSize <= canvas.width) {
+                navX = x;
+            }
+        }
+
+        if (navX + hexSize <= canvas.width && navY + hexSize <= canvas.height) {
+            const nav = new Hexagon(navX, navY, hexSize, maxRow, null, true);
+            hexagons.push(nav);
+            window.navHex = nav;
+        }
+    }
+
+    // ============================================================
+    // ANIMATION LOOP
+    // ============================================================
+    function animate(now) {
+        if (isResizing) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        let allDone = true;
+        for (const hex of hexagons) {
+            hex.startAnimation(now);
+            if (!hex.update(now)) allDone = false;
+            hex.draw(ctx);
+        }
+
+        // Also keep looping if nav hex pop-in is still animating
+        if (window.navHex && worldwideLoaded && window.navHex.navPopStart) {
+            const navElapsed = now - window.navHex.navPopStart;
+            if (navElapsed < 500) allDone = false;
+        }
+
+        if (!allDone) {
+            requestAnimationFrame(animate);
+        } else {
+            canvas.style.opacity = '1';
+        }
+    }
+
+    function triggerAnimation() {
+        animationStartTime = null;
+        hexagons.forEach(h => { h.startTime = null; h.rotation = 90; h.opacity = 0; });
+        requestAnimationFrame(animate);
+    }
+
+    // ============================================================
+    // DEBUG MODES
+    // ============================================================
+    function setDebugMode(mode) {
+        debugMode = mode;
+        const info = document.getElementById('debugInfo');
+        const mapEl = document.getElementById('map');
+
+        if (mode === 0) {
+            info.classList.remove('visible');
+            mapEl.classList.remove('debug-visible');
+            generateHexagons();
+            triggerAnimation();
+        } else {
+            info.classList.add('visible');
+            mapEl.classList.add('debug-visible');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (mode === 1) {
+                info.textContent = 'Debug: Base Map';
+            } else if (mode === 2) {
+                info.textContent = 'Debug: Boundaries';
+                drawBoundaries();
+            } else if (mode === 3) {
+                info.textContent = 'Debug: Point Grid';
+                drawPointGrid();
+            } else if (mode === 4) {
+                info.textContent = 'Debug: Static Hexagons';
+                drawHexagonsStatic();
+            }
+        }
+    }
+
+    function drawBoundaries() {
+        const polys = getScreenPolygons();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        polys.forEach(poly => {
+            ctx.strokeStyle = '#B8342E';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(poly[0][0], poly[0][1]);
+            for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0], poly[i][1]);
+            ctx.closePath();
+            ctx.stroke();
+
+            ctx.fillStyle = '#6B5442';
+            poly.forEach(([x, y]) => {
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        });
+    }
+
+    function drawPointGrid() {
+        const polys = getScreenPolygons();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let y = 0; y < canvas.height; y += 20) {
+            for (let x = 0; x < canvas.width; x += 20) {
+                const land = isOverLand(x, y, polys);
+                ctx.fillStyle = land ? '#6B5442' : 'rgba(139,111,71,0.2)';
+                ctx.beginPath();
+                ctx.arc(x, y, land ? 2 : 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+
+    function drawHexagonsStatic() {
+        const polys = getScreenPolygons();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const hexSize = 12, hexWidth = Math.sqrt(3) * hexSize, rowHeight = hexSize * 1.5, buf = 1.5;
+        let row = 0;
+        for (let y = hexSize; y <= canvas.height - hexSize; y += rowHeight) {
+            const xOff = (row % 2) * (hexWidth / 2);
+            for (let x = hexSize + xOff; x <= canvas.width - hexSize; x += hexWidth) {
+                if (isOverLand(x, y, polys)) {
+                    const pts = [];
+                    for (let i = 0; i < 6; i++) {
+                        const a = Math.PI / 3 * i - Math.PI / 6;
+                        pts.push([x + hexSize * Math.cos(a), y + hexSize * Math.sin(a)]);
+                    }
+                    ctx.fillStyle = '#6B5442';
+                    ctx.beginPath();
+                    ctx.moveTo(x + (pts[0][0] - x) * (1 - buf / hexSize), y + (pts[0][1] - y) * (1 - buf / hexSize));
+                    for (let i = 1; i < pts.length; i++) {
+                        ctx.lineTo(x + (pts[i][0] - x) * (1 - buf / hexSize), y + (pts[i][1] - y) * (1 - buf / hexSize));
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+            row++;
+        }
+    }
+
+    // ============================================================
+    // BACKGROUND WORLDWIDE LOAD
+    // ============================================================
+    async function loadWorldwideData() {
+        const urls = [
+            'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson',
+            'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson'
+        ];
+
+        for (const url of urls) {
+            try {
+                const res = await fetch(url);
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log('Worldwide data loaded from:', url);
+
+                    // Build spatial index
+                    spatialIndex = buildSpatialIndex(data.features);
+                    console.log('Spatial index built:', data.features.length, 'features');
+
+                    // Swap in worldwide data
+                    geoJsonData = data;
+                    worldwideLoaded = true;
+
+                    // Regenerate hexagons — nav hex is now visible and will
+                    // pop in with its own elastic animation on first draw
+                    generateHexagons();
+                    triggerAnimation();
+
+                    return;
+                }
+            } catch (e) {
+                console.log('Failed:', url, e.message);
+            }
+        }
+        console.log('Worldwide load failed, staying on embedded boundaries');
+    }
+
+    // ============================================================
+    // MODAL
+    // ============================================================
+    function closeGISModal() {
+        document.getElementById('gisModal').classList.remove('visible');
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeGISModal();
+    });
+
+    document.getElementById('gisModal').addEventListener('click', (e) => {
+        if (e.target.id === 'gisModal') closeGISModal();
+    });
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    async function init() {
+        canvas = document.getElementById('canvas');
+        ctx = canvas.getContext('2d');
+
+        // Wait one frame for layout
+        await new Promise(r => requestAnimationFrame(r));
+
+        // Size map container to match text-section height
+        const textSection = document.querySelector('.text-section');
+        const mapContainer = document.getElementById('mapContainer');
+        mapContainer.style.height = textSection.getBoundingClientRect().height + 'px';
+
+        canvas.width = mapContainer.clientWidth;
+        canvas.height = mapContainer.clientHeight;
+
+        // Init Leaflet
+        map = L.map('map', {
+            center: [57.5, -4.0],
+            zoom: 7,
+            zoomControl: false,
+            dragging: false,
+            touchZoom: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 19
+        }).addTo(map);
+
+        map.invalidateSize();
+
+        // Phase 1: embedded boundaries, immediate render
+        geoJsonData = EMBEDDED_BOUNDARIES;
+        await new Promise(r => setTimeout(r, 150));  // let map tiles settle
+        generateHexagons();
+        triggerAnimation();
+
+        // Phase 2: worldwide data in background (no await)
+        loadWorldwideData();
+
+        // ---- EVENT HANDLERS ----
+
+        // Map pan/zoom: update debug views live, regenerate hexes on end
+        map.on('move', () => {
+            if (isResizing) return;
+            if (debugMode === 2) drawBoundaries();
+            else if (debugMode === 3) drawPointGrid();
+            else if (debugMode === 4) drawHexagonsStatic();
+        });
+
+        map.on('moveend', () => {
+            if (isResizing) return;
+            if (debugMode === 0) { generateHexagons(); triggerAnimation(); }
+            else setDebugMode(debugMode);
+        });
+
+        map.on('zoomend', () => {
+            if (isResizing) return;
+            if (debugMode === 0) { generateHexagons(); triggerAnimation(); }
+            else setDebugMode(debugMode);
+        });
+
+        // Keyboard
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('gisModal').classList.contains('visible')) return;
+
+            if (e.key >= '0' && e.key <= '4') { setDebugMode(parseInt(e.key)); e.preventDefault(); return; }
+            if (e.key.toLowerCase() === 'i') { document.getElementById('gisModal').classList.add('visible'); e.preventDefault(); return; }
+
+            const c = map.getCenter(), z = map.getZoom(), p = 0.1;
+            switch (e.key.toLowerCase()) {
+                case 'w': map.setView([c.lat + p, c.lng]); e.preventDefault(); break;
+                case 's': map.setView([c.lat - p, c.lng]); e.preventDefault(); break;
+                case 'a': map.setView([c.lat, c.lng - p]); e.preventDefault(); break;
+                case 'd': map.setView([c.lat, c.lng + p]); e.preventDefault(); break;
+                case '+': case '=': map.setZoom(z + 1); e.preventDefault(); break;
+                case '-': case '_': map.setZoom(z - 1); e.preventDefault(); break;
+            }
+        });
+
+        // Nav hex hover → keymap tooltip
+        const tooltip = document.getElementById('keymapTooltip');
+        canvas.addEventListener('mousemove', (e) => {
+            const r = canvas.getBoundingClientRect();
+            const x = e.clientX - r.left, y = e.clientY - r.top;
+            if (window.navHex && worldwideLoaded && window.navHex.containsPoint(x, y)) {
+                canvas.style.cursor = 'help';
+                tooltip.classList.add('visible');
+            } else {
+                canvas.style.cursor = 'default';
+                tooltip.classList.remove('visible');
+            }
+        });
+        canvas.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
+
+        // Resize: hide canvas, debounce, recalc, show
+        let resizeRAF = null;
+        window.addEventListener('resize', () => {
+            isResizing = true;
+            if (resizeRAF) cancelAnimationFrame(resizeRAF);
+            canvas.style.opacity = '0';
+            clearTimeout(window._resizeTimeout);
+
+            resizeRAF = requestAnimationFrame(() => {
+                const ts = document.querySelector('.text-section');
+                const mc = document.getElementById('mapContainer');
+                mc.style.height = ts.getBoundingClientRect().height + 'px';
+                canvas.width = mc.clientWidth;
+                canvas.height = mc.clientHeight;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                map.invalidateSize();
+
+                window._resizeTimeout = setTimeout(() => {
+                    isResizing = false;
+                    if (debugMode === 0) { generateHexagons(); triggerAnimation(); }
+                    else setDebugMode(debugMode);
+                    canvas.style.opacity = '1';
+                }, 300);
+            });
+        });
+    }
+
+    function toggleDetails() {
+        document.querySelector('.details-toggle').classList.toggle('open');
+        document.getElementById('detailsContent').classList.toggle('open');
+    }
+
+    window.addEventListener('load', init);
+    </script>
+</body>
+</html>
