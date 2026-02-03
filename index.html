@@ -409,6 +409,16 @@
             font-size: 0.7rem;
             margin-right: 8px;
             border: 1px solid rgba(232, 212, 162, 0.3);
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .keymap-key:hover,
+        .keymap-key:active {
+            background: rgba(232, 212, 162, 0.4);
+            border-color: rgba(232, 212, 162, 0.6);
+            transform: translateY(-1px);
         }
 
         .keymap-action {
@@ -721,24 +731,24 @@
                     <div class="keymap-section">
                         <div class="keymap-title">DEBUG LAYERS</div>
                         <div class="keymap-item">
-                            <span class="keymap-key">5</span>
-                            <div class="keymap-action">Animation</div>
-                        </div>
-                        <div class="keymap-item">
-                            <span class="keymap-key">1</span>
+                            <span class="keymap-key" data-key="1">1</span>
                             <div class="keymap-action">Base map</div>
                         </div>
                         <div class="keymap-item">
-                            <span class="keymap-key">2</span>
+                            <span class="keymap-key" data-key="2">2</span>
                             <div class="keymap-action">Boundaries</div>
                         </div>
                         <div class="keymap-item">
-                            <span class="keymap-key">3</span>
+                            <span class="keymap-key" data-key="3">3</span>
                             <div class="keymap-action">Point grid</div>
                         </div>
                         <div class="keymap-item">
-                            <span class="keymap-key">4</span>
+                            <span class="keymap-key" data-key="4">4</span>
                             <div class="keymap-action">Hexagons</div>
+                        </div>
+                        <div class="keymap-item">
+                            <span class="keymap-key" data-key="5">5</span>
+                            <div class="keymap-action">Animation</div>
                         </div>
                     </div>
                     <div class="keymap-section">
@@ -1764,6 +1774,36 @@
     }
 
     window.addEventListener('load', init);
+    
+    // Touch/click handlers for keymap keys
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.keymap-key[data-key]').forEach(key => {
+            const handler = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const keyValue = key.getAttribute('data-key');
+                
+                // Simulate keyboard event
+                const keyEvent = new KeyboardEvent('keydown', {
+                    key: keyValue,
+                    code: 'Digit' + keyValue,
+                    keyCode: 48 + parseInt(keyValue),
+                    which: 48 + parseInt(keyValue),
+                    bubbles: true
+                });
+                document.dispatchEvent(keyEvent);
+                
+                // Visual feedback
+                key.style.transform = 'translateY(0)';
+                setTimeout(() => {
+                    key.style.transform = '';
+                }, 100);
+            };
+            
+            key.addEventListener('click', handler);
+            key.addEventListener('touchend', handler);
+        });
+    });
     </script>
 </body>
 </html>
