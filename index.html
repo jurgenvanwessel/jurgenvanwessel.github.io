@@ -28,7 +28,7 @@
             width: 100%;
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 30px;
             padding-bottom: 20px;
             border-bottom: 1px solid rgba(92, 74, 58, 0.2);
         }
@@ -111,12 +111,49 @@
 
         .nav-link.disabled {
             color: #B8A896;
-            cursor: default;
+            cursor: help;
             font-style: italic;
+            position: relative;
         }
 
         .nav-link.disabled:hover {
             background: transparent;
+        }
+
+        .nav-link.disabled:hover .nav-tooltip {
+            opacity: 1;
+        }
+
+        .nav-tooltip {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(107, 84, 66, 0.95);
+            color: #E8D4A2;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 3000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-width: 250px;
+            max-width: 300px;
+            white-space: normal;
+            font-style: normal;
+        }
+
+        .nav-tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-bottom-color: rgba(107, 84, 66, 0.95);
         }
 
         .icon-links {
@@ -567,6 +604,10 @@
         <div class="nav-links">
             <a href="#product-ownership" class="nav-link" data-case="product-ownership">Product Ownership</a>
             <a href="#geospatial-recovery" class="nav-link" data-case="geospatial-recovery">Geospatial Recovery</a>
+            <span class="nav-link disabled">
+                Digital Delivery
+                <span class="nav-tooltip">I delivered a geo-resident data platform giving access to major government contracts in Saudi Arabia. Case study coming soon.</span>
+            </span>
             <span class="nav-link disabled">More case studies incoming...</span>
         </div>
         <div class="icon-links">
@@ -592,7 +633,7 @@
                 <!-- CASE STUDY 1: PRODUCT OWNERSHIP / HS2 -->
                 <div class="case-study" id="product-ownership">
                     <div>
-                        <h1>I transformed archaeological data collection on Britain's largest infrastructure project — scaling innovation from 3 users to industry catalyst</h1>
+                        <h1>I transformed data collection on Britain's largest infrastructure project — scaling innovation from 3 users to industry catalyst</h1>
                         <div class="subheading">
                             <span class="subheading-hex"></span>
                             England // HS2 High Speed Rail Program
