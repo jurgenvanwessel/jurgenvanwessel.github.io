@@ -437,6 +437,12 @@
             opacity: 1;
         }
 
+        .keymap-mobile-message {
+            display: none;
+            text-align: center;
+            font-style: italic;
+        }
+
         .keymap-section {
             margin-bottom: 10px;
         }
@@ -583,10 +589,23 @@
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 15px;
+                padding-bottom: 25px;
+            }
+
+            .profile-image {
+                margin-bottom: 0;
             }
 
             .profile-name {
-                font-weight: 600;
+                font-weight: 700;
+            }
+
+            .keymap-section {
+                display: none;
+            }
+
+            .keymap-mobile-message {
+                display: block;
             }
 
             .page-wrapper {
@@ -787,6 +806,11 @@
                 <canvas id="canvas"></canvas>
                 <div class="debug-info" id="debugInfo"></div>
                 <div class="keymap-tooltip" id="keymapTooltip">
+                    <div class="keymap-mobile-message">
+                        ðŸ¥š You found the easter egg!<br>
+                        This egg currently only works on desktop.<br>
+                        It's on the list!
+                    </div>
                     <div class="keymap-section">
                         <div class="keymap-title">MAP NAVIGATION</div>
                         <div class="keymap-item">
