@@ -2400,6 +2400,8 @@
         // Resize: hide canvas, debounce, recalc, show
         let resizeRAF = null;
         window.addEventListener('resize', () => {
+            if (!currentCaseStudy) return; // Only handle resize on case study pages
+            
             isResizing = true;
             if (resizeRAF) cancelAnimationFrame(resizeRAF);
             canvas.style.opacity = '0';
@@ -2426,14 +2428,15 @@
 
                     window._resizeTimeout = setTimeout(() => {
                         isResizing = false;
-                        // Regenerate hexagons after resize
+                        // CRITICAL: Actually regenerate hexagons after resize
                         if (debugMode === 0) { 
                             generateHexagons(); 
+                            canvas.style.opacity = '1';
                             triggerAnimation(); 
                         } else {
                             setDebugMode(debugMode);
+                            canvas.style.opacity = '1';
                         }
-                        canvas.style.opacity = '1';
                     }, 300);
                 }
             });
@@ -2914,55 +2917,52 @@
         
         landingCtx = landingCanvas.getContext('2d');
         
-        // Wait for layout to be completely stable - use a longer delay on first load
-        setTimeout(() => {
-            // Force a layout flush first
-            landingCanvas.offsetHeight;
+        // Clear immediately to prevent any flash
+        const tempSize = landingCanvas.clientWidth;
+        landingCanvas.width = tempSize;
+        landingCanvas.height = tempSize;
+        landingCtx.clearRect(0, 0, tempSize, tempSize);
+        
+        // Load image first, THEN size canvas based on final image load timing
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = 'jurgen-portrait-cropped.png';
+        
+        img.onerror = () => {
+            console.error('Failed to load portrait image:', img.src);
+        };
+        
+        img.onload = () => {
+            console.log('Portrait image loaded');
             
+            // NOW get the final size after everything has settled
             requestAnimationFrame(() => {
-                // Get ACTUAL rendered size using getBoundingClientRect
                 const rect = landingCanvas.getBoundingClientRect();
-                const size = Math.floor(rect.width);
+                const finalSize = Math.floor(rect.width);
                 
-                console.log('Canvas actual rendered size:', size, 'x', size);
+                console.log('Final canvas size:', finalSize, 'x', finalSize);
                 
-                // Lock canvas dimensions - INTERNAL and CSS with max constraints
-                landingCanvas.width = size;
-                landingCanvas.height = size;
+                // Set internal dimensions
+                landingCanvas.width = finalSize;
+                landingCanvas.height = finalSize;
                 
-                // Force CSS dimensions to prevent ANY resizing whatsoever
-                landingCanvas.style.width = size + 'px';
-                landingCanvas.style.height = size + 'px';
-                landingCanvas.style.minWidth = size + 'px';
-                landingCanvas.style.minHeight = size + 'px';
-                landingCanvas.style.maxWidth = size + 'px';
-                landingCanvas.style.maxHeight = size + 'px';
-                landingCanvas.style.flex = 'none'; // Prevent flex from stretching it
+                // Lock CSS dimensions completely
+                landingCanvas.style.width = finalSize + 'px';
+                landingCanvas.style.height = finalSize + 'px';
+                landingCanvas.style.minWidth = finalSize + 'px';
+                landingCanvas.style.minHeight = finalSize + 'px';
+                landingCanvas.style.maxWidth = finalSize + 'px';
+                landingCanvas.style.maxHeight = finalSize + 'px';
                 
-                // Clear canvas immediately
-                landingCtx.clearRect(0, 0, size, size);
+                // Clear
+                landingCtx.clearRect(0, 0, finalSize, finalSize);
                 
-                console.log('Canvas locked at size:', size, 'x', size);
-                
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.src = 'jurgen-portrait-cropped.png';
-                
-                img.onerror = () => {
-                    console.error('Failed to load portrait image:', img.src);
-                };
-                
-                img.onload = () => {
-                    console.log('Portrait image loaded, dimensions:', img.width, 'x', img.height);
-                    
-                    // Store the size so we can verify it hasn't changed
-                    landingCanvas.dataset.lockedSize = size;
-                    
-                    generateLandingHexagons(img);
-                    triggerLandingAnimation();
-                };
+                // Generate hexagons and animate
+                landingCanvas.dataset.lockedSize = finalSize;
+                generateLandingHexagons(img);
+                triggerLandingAnimation();
             });
-        }, 100); // 100ms delay on first load to ensure layout is rock solid
+        };
     }
     
     // Touch/click handlers for keymap keys
