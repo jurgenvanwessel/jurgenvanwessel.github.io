@@ -938,7 +938,6 @@
                             <span class="subheading-hex"></span>
                             Innovation at Scale
                         </div>
-                        <div class="case-study-card-subtitle">HS2 High Speed Rail Program, England</div>
                         <div class="case-study-card-description">
                             Transformed data collection on Britain's largest infrastructure project — scaling innovation from 3 users to industry catalyst, deploying 120 iPads with zero data loss across 37,000 records.
                         </div>
@@ -949,7 +948,6 @@
                             <span class="subheading-hex"></span>
                             Geospatial Leadership
                         </div>
-                        <div class="case-study-card-subtitle">Aberdeen Western Peripheral Route, Scotland</div>
                         <div class="case-study-card-description">
                             Defended a $300K payment dispute on a 100,000m³ earthworks program with multi-pipeline spatial validation — original invoice accepted without revision through rigorous cross-validation.
                         </div>
@@ -960,7 +958,6 @@
                             <span class="subheading-hex"></span>
                             Digital Delivery
                         </div>
-                        <div class="case-study-card-subtitle">International Heritage Programs, Saudi Arabia & Beyond</div>
                         <div class="case-study-card-description">
                             Built and led a 14-person global technical team in 6 months, deployed enterprise platforms meeting strict data residency requirements, and unlocked $10M+ contract pipeline.
                         </div>
@@ -2840,6 +2837,16 @@
     }
 
     function animateLandingHexagons(now) {
+        // Verify canvas hasn't been resized unexpectedly
+        if (landingCanvas.dataset.lockedSize) {
+            const expectedSize = parseInt(landingCanvas.dataset.lockedSize);
+            if (landingCanvas.width !== expectedSize || landingCanvas.height !== expectedSize) {
+                console.warn('Canvas size changed unexpectedly!', 
+                    'Expected:', expectedSize, 
+                    'Got:', landingCanvas.width, 'x', landingCanvas.height);
+            }
+        }
+        
         landingCtx.clearRect(0, 0, landingCanvas.width, landingCanvas.height);
 
         let allDone = true;
@@ -2851,6 +2858,8 @@
 
         if (!allDone) {
             requestAnimationFrame(animateLandingHexagons);
+        } else {
+            console.log('Animation complete. Final canvas size:', landingCanvas.width, 'x', landingCanvas.height);
         }
     }
 
@@ -2873,37 +2882,52 @@
         
         landingCtx = landingCanvas.getContext('2d');
         
-        // Wait for next frame to ensure layout is completely stable
+        // Wait for 3 animation frames to ensure layout is COMPLETELY stable
         requestAnimationFrame(() => {
-            // Set canvas size after layout is settled
-            const computedStyle = window.getComputedStyle(landingCanvas);
-            const containerWidth = parseFloat(computedStyle.width);
-            const size = Math.floor(containerWidth);
-            
-            // Lock canvas dimensions
-            landingCanvas.width = size;
-            landingCanvas.height = size;
-            landingCanvas.style.width = size + 'px';
-            landingCanvas.style.height = size + 'px';
-            
-            // Clear canvas immediately to prevent any ghost image
-            landingCtx.clearRect(0, 0, size, size);
-            
-            console.log('Canvas locked at size:', size, 'x', size);
-            
-            const img = new Image();
-            img.crossOrigin = 'anonymous';  // Allow getImageData on canvas
-            img.src = 'jurgen-portrait-cropped.png';
-            
-            img.onerror = () => {
-                console.error('Failed to load portrait image:', img.src);
-            };
-            
-            img.onload = () => {
-                console.log('Portrait image loaded, dimensions:', img.width, 'x', img.height);
-                generateLandingHexagons(img);
-                triggerLandingAnimation();
-            };
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    // Get ACTUAL rendered size using getBoundingClientRect (more reliable than getComputedStyle)
+                    const rect = landingCanvas.getBoundingClientRect();
+                    const size = Math.floor(rect.width);
+                    
+                    console.log('Canvas actual rendered size:', size, 'x', size);
+                    
+                    // Lock canvas dimensions - INTERNAL and CSS
+                    landingCanvas.width = size;
+                    landingCanvas.height = size;
+                    
+                    // Force CSS dimensions to prevent ANY resizing
+                    landingCanvas.style.width = size + 'px';
+                    landingCanvas.style.height = size + 'px';
+                    landingCanvas.style.minWidth = size + 'px';
+                    landingCanvas.style.minHeight = size + 'px';
+                    landingCanvas.style.maxWidth = size + 'px';
+                    landingCanvas.style.maxHeight = size + 'px';
+                    
+                    // Clear canvas immediately
+                    landingCtx.clearRect(0, 0, size, size);
+                    
+                    console.log('Canvas locked at size:', size, 'x', size);
+                    
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.src = 'jurgen-portrait-cropped.png';
+                    
+                    img.onerror = () => {
+                        console.error('Failed to load portrait image:', img.src);
+                    };
+                    
+                    img.onload = () => {
+                        console.log('Portrait image loaded, dimensions:', img.width, 'x', img.height);
+                        
+                        // Store the size so we can verify it hasn't changed
+                        landingCanvas.dataset.lockedSize = size;
+                        
+                        generateLandingHexagons(img);
+                        triggerLandingAnimation();
+                    };
+                });
+            });
         });
     }
     
