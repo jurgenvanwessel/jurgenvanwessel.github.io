@@ -2139,6 +2139,11 @@
         // Initialize hex portrait
         initHexPortrait();
         
+        // Trigger landing page hex animation if hexagons exist
+        if (landingHexagons && landingHexagons.length > 0) {
+            triggerLandingAnimation();
+        }
+        
         // Update nav links
         document.querySelectorAll('.nav-link[data-case]').forEach(link => {
             link.classList.remove('active');
@@ -2651,7 +2656,8 @@
 
     window.addEventListener('load', () => {
         init();
-        setTimeout(initLandingPortrait, 200);
+        // Small delay to ensure layout is stable, but quick enough to prevent ghost
+        setTimeout(initLandingPortrait, 50);
     });
     
     // ============================================================
@@ -2777,16 +2783,12 @@
         const imgCanvas = document.createElement('canvas');
         const imgCtx = imgCanvas.getContext('2d');
         
-        // Get the size of the visible canvas
-        const computedStyle = window.getComputedStyle(landingCanvas);
-        const containerWidth = parseFloat(computedStyle.width);
-        const size = Math.floor(containerWidth);
+        // Use the already-set canvas size (don't resize to prevent jitter)
+        const size = landingCanvas.width;
         
         console.log('Canvas size:', size, 'x', size);
         
-        // Set both canvases to same size
-        landingCanvas.width = size;
-        landingCanvas.height = size;
+        // Size offscreen canvas to match
         imgCanvas.width = size;
         imgCanvas.height = size;
         
@@ -2854,6 +2856,8 @@
 
     function triggerLandingAnimation() {
         console.log('Triggering landing hexagon animation');
+        // Clear canvas before animation starts to prevent any ghost
+        landingCtx.clearRect(0, 0, landingCanvas.width, landingCanvas.height);
         landingHexagons.forEach(h => { h.startTime = null; h.rotation = 90; h.opacity = 0; });
         requestAnimationFrame(animateLandingHexagons);
     }
@@ -2868,6 +2872,17 @@
         console.log('Initializing landing portrait hex animation');
         
         landingCtx = landingCanvas.getContext('2d');
+        
+        // Set canvas size IMMEDIATELY to prevent jitter and ghost images
+        const computedStyle = window.getComputedStyle(landingCanvas);
+        const containerWidth = parseFloat(computedStyle.width);
+        const size = Math.floor(containerWidth);
+        
+        landingCanvas.width = size;
+        landingCanvas.height = size;
+        
+        // Clear canvas immediately to prevent any ghost image
+        landingCtx.clearRect(0, 0, size, size);
         
         const img = new Image();
         img.crossOrigin = 'anonymous';  // Allow getImageData on canvas
