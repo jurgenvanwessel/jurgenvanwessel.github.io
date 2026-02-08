@@ -889,7 +889,64 @@
                 padding: 20px 24px;
             }
         }
-    </style>
+    
+@media (max-width: 900px) {
+
+    body {
+        padding: 24px 20px;
+    }
+
+    .page-wrapper {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .nav-wrapper {
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+
+    .profile-image {
+        width: 72px;
+        height: 72px;
+        margin-bottom: 0;
+        box-shadow: 0 0 0 8px #E8D4A2;
+    }
+
+    .profile-name {
+        font-size: 1rem;
+    }
+
+    .content,
+    .text-section {
+        gap: 22px;
+    }
+}
+
+
+/* --- Mobile landing page refinement --- */
+@media (max-width: 900px) {
+
+    .text-section {
+        text-align: left;
+        margin-left: 12px;
+    }
+
+    .text-section p:nth-child(-n+4) {
+        max-width: 100%;
+    }
+
+    .red-hex {
+        width: 32px;
+        height: 32px;
+        margin-right: 10px;
+        align-self: flex-start;
+        margin-top: 0.15em;
+    }
+}
+
+</style>
 </head>
 <body>
     <!-- NAVIGATION BAR -->
@@ -2963,5 +3020,17 @@
         });
     });
     </script>
+
+<script>
+/* --- Leaflet resize + focus stability --- */
+window._leafletMaps = window._leafletMaps || [];
+
+window.addEventListener("resize", () => {
+    window._leafletMaps.forEach(m => {
+        try { m.invalidateSize(); } catch(e) {}
+    });
+});
+</script>
+
 </body>
 </html>
