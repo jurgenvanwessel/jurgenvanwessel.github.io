@@ -2656,8 +2656,8 @@
 
     window.addEventListener('load', () => {
         init();
-        // Small delay to ensure layout is stable, but quick enough to prevent ghost
-        setTimeout(initLandingPortrait, 50);
+        // Init immediately - requestAnimationFrame inside handles timing
+        initLandingPortrait();
     });
     
     // ============================================================
@@ -2873,30 +2873,38 @@
         
         landingCtx = landingCanvas.getContext('2d');
         
-        // Set canvas size IMMEDIATELY to prevent jitter and ghost images
-        const computedStyle = window.getComputedStyle(landingCanvas);
-        const containerWidth = parseFloat(computedStyle.width);
-        const size = Math.floor(containerWidth);
-        
-        landingCanvas.width = size;
-        landingCanvas.height = size;
-        
-        // Clear canvas immediately to prevent any ghost image
-        landingCtx.clearRect(0, 0, size, size);
-        
-        const img = new Image();
-        img.crossOrigin = 'anonymous';  // Allow getImageData on canvas
-        img.src = 'jurgen-portrait-cropped.png';
-        
-        img.onerror = () => {
-            console.error('Failed to load portrait image:', img.src);
-        };
-        
-        img.onload = () => {
-            console.log('Portrait image loaded, dimensions:', img.width, 'x', img.height);
-            generateLandingHexagons(img);
-            triggerLandingAnimation();
-        };
+        // Wait for next frame to ensure layout is completely stable
+        requestAnimationFrame(() => {
+            // Set canvas size after layout is settled
+            const computedStyle = window.getComputedStyle(landingCanvas);
+            const containerWidth = parseFloat(computedStyle.width);
+            const size = Math.floor(containerWidth);
+            
+            // Lock canvas dimensions
+            landingCanvas.width = size;
+            landingCanvas.height = size;
+            landingCanvas.style.width = size + 'px';
+            landingCanvas.style.height = size + 'px';
+            
+            // Clear canvas immediately to prevent any ghost image
+            landingCtx.clearRect(0, 0, size, size);
+            
+            console.log('Canvas locked at size:', size, 'x', size);
+            
+            const img = new Image();
+            img.crossOrigin = 'anonymous';  // Allow getImageData on canvas
+            img.src = 'jurgen-portrait-cropped.png';
+            
+            img.onerror = () => {
+                console.error('Failed to load portrait image:', img.src);
+            };
+            
+            img.onload = () => {
+                console.log('Portrait image loaded, dimensions:', img.width, 'x', img.height);
+                generateLandingHexagons(img);
+                triggerLandingAnimation();
+            };
+        });
     }
     
     // Touch/click handlers for keymap keys
