@@ -36,6 +36,10 @@
             position: relative;
         }
 
+        .nav-wrapper.hidden {
+            display: none;
+        }
+
         .page-wrapper {
             display: grid;
             grid-template-columns: 1fr 35%;
@@ -59,6 +63,14 @@
             display: flex;
             align-items: center;
             gap: 15px;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            transition: opacity 0.2s;
+        }
+
+        .profile:hover {
+            opacity: 0.8;
         }
 
         .profile-image {
@@ -229,6 +241,140 @@
             display: flex;
             flex-direction: column;
             gap: 30px;
+        }
+
+        /* LANDING PAGE STYLES */
+        .landing-page {
+            display: none;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .landing-page.active {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .landing-hero {
+            display: grid;
+            grid-template-columns: 1fr 35%;
+            gap: 60px;
+            align-items: start;
+            width: 100%;
+            max-width: 1800px;
+        }
+
+        .landing-content {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .landing-portrait {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1;
+            border-radius: 12px;
+            background: #D4C4A4;
+            border: 4px solid #6B5442;
+            object-fit: cover;
+            object-position: center 35%;
+        }
+
+        .landing-intro {
+            max-width: none;
+            text-align: left;
+        }
+
+        .landing-intro h1 {
+            font-size: 2.8rem;
+            line-height: 1.3;
+            margin-bottom: 25px;
+            color: #5C4A3A;
+            font-weight: 400;
+        }
+
+        .landing-intro p {
+            font-size: 1.5rem;
+            line-height: 1.5;
+            color: #6B5442;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .landing-intro .landing-tagline {
+            font-size: 1.5rem;
+            line-height: 1.5;
+            color: #6B5442;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+
+        .landing-intro .landing-cta {
+            font-size: 1.5rem;
+            line-height: 1.5;
+            color: #B8342E;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+
+        .landing-intro .landing-examples {
+            font-size: 1.5rem;
+            line-height: 1.5;
+            color: #6B5442;
+            font-weight: 400;
+            margin-bottom: 30px;
+        }
+
+        .case-study-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .case-study-card {
+            background: transparent;
+            border: 2px solid #6B5442;
+            border-radius: 10px;
+            padding: 24px 32px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .case-study-card:hover {
+            background: rgba(184, 52, 46, 0.08);
+            border-color: #B8342E;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .case-study-card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #5C4A3A;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .case-study-card-subtitle {
+            font-size: 0.85rem;
+            color: #B8342E;
+            letter-spacing: 1px;
+        }
+
+        .case-study-card-description {
+            font-size: 0.9rem;
+            color: #6B5442;
+            line-height: 1.4;
         }
 
         h1 {
@@ -622,18 +768,47 @@
             h1 {
                 font-size: 1.5rem;
             }
+
+            .landing-intro h1 {
+                font-size: 2rem;
+            }
+
+            .landing-intro .landing-tagline,
+            .landing-intro .landing-cta,
+            .landing-intro .landing-examples {
+                font-size: 1.2rem;
+            }
+
+            .landing-hero {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .landing-portrait {
+                width: 200px;
+                height: 200px;
+                justify-self: center;
+            }
+
+            .landing-intro {
+                text-align: center;
+            }
+
+            .case-study-card {
+                padding: 20px 24px;
+            }
         }
     </style>
 </head>
 <body>
     <!-- NAVIGATION BAR -->
-    <div class="nav-wrapper">
-        <div class="profile">
+    <div class="nav-wrapper" id="navWrapper">
+        <a href="#landing" class="profile" id="profileLink">
             <img src="profile_avatar.png" alt="Jürgen van Wessel" class="profile-image">
             <div class="profile-name">Jürgen van Wessel</div>
-        </div>
+        </a>
         <div class="nav-links">
-            <a href="#product-ownership" class="nav-link" data-case="product-ownership">Product Ownership</a>
+            <a href="#product-ownership" class="nav-link" data-case="product-ownership">Innovation at Scale</a>
             <a href="#geospatial-recovery" class="nav-link" data-case="geospatial-recovery">Geospatial Leadership</a>
             <a href="#digital-delivery" class="nav-link" data-case="digital-delivery">Digital Delivery</a>
             <span class="nav-link disabled">More case studies incoming...</span>
@@ -653,8 +828,59 @@
         </div>
     </div>
 
+    <!-- LANDING PAGE -->
+    <div class="landing-page" id="landing-page">
+        <div class="landing-hero">
+            <div class="landing-content">
+                <div class="landing-intro">
+                    <h1>I am Jürgen van Wessel</h1>
+                    <p class="landing-tagline">I'm an experienced leader in geospatial data, digital delivery and innovation.</p>
+                    <p class="landing-cta">I can help grow your organization by solving difficult business problems with data, creativity and deep experience.</p>
+                    <p class="landing-examples">Here are some examples of where I have done this before:</p>
+                </div>
+                
+                <div class="case-study-cards">
+                    <a href="#product-ownership" class="case-study-card" data-case="product-ownership">
+                        <div class="case-study-card-title">
+                            <span class="subheading-hex"></span>
+                            Innovation at Scale
+                        </div>
+                        <div class="case-study-card-subtitle">HS2 High Speed Rail Program, England</div>
+                        <div class="case-study-card-description">
+                            Transformed data collection on Britain's largest infrastructure project — scaling innovation from 3 users to industry catalyst, deploying 120 iPads with zero data loss across 37,000 records.
+                        </div>
+                    </a>
+
+                    <a href="#geospatial-recovery" class="case-study-card" data-case="geospatial-recovery">
+                        <div class="case-study-card-title">
+                            <span class="subheading-hex"></span>
+                            Geospatial Leadership
+                        </div>
+                        <div class="case-study-card-subtitle">Aberdeen Western Peripheral Route, Scotland</div>
+                        <div class="case-study-card-description">
+                            Defended a $300K payment dispute on a 100,000m³ earthworks program with multi-pipeline spatial validation — original invoice accepted without revision through rigorous cross-validation.
+                        </div>
+                    </a>
+
+                    <a href="#digital-delivery" class="case-study-card" data-case="digital-delivery">
+                        <div class="case-study-card-title">
+                            <span class="subheading-hex"></span>
+                            Digital Delivery
+                        </div>
+                        <div class="case-study-card-subtitle">International Heritage Programs, Saudi Arabia & Beyond</div>
+                        <div class="case-study-card-description">
+                            Built and led a 14-person global technical team in 6 months, deployed enterprise platforms meeting strict data residency requirements, and unlocked $10M+ contract pipeline.
+                        </div>
+                    </a>
+                </div>
+            </div>
+            
+            <img src="jurgen-portrait.jpg" alt="Jürgen van Wessel" class="landing-portrait">
+        </div>
+    </div>
+
     <!-- PAGE LAYOUT -->
-    <div class="page-wrapper">
+    <div class="page-wrapper" id="caseStudyWrapper">
         <div class="content">
             <div class="text-section">
 
@@ -1709,6 +1935,14 @@
         
         currentCaseStudy = caseId;
         
+        // Scroll to top immediately
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // Hide landing page, show case study wrapper
+        document.getElementById('landing-page').classList.remove('active');
+        document.getElementById('caseStudyWrapper').style.display = 'grid';
+        document.getElementById('navWrapper').classList.remove('hidden');
+        
         // Hide canvas immediately so old map disappears
         if (canvas) {
             canvas.style.opacity = '0';
@@ -1764,30 +1998,54 @@
         });
     }
 
-    function initNavigation() {
-        // Set up click handlers
+    function showLanding() {
+        currentCaseStudy = null;
+        
+        // Show landing page, hide case study wrapper
+        document.getElementById('landing-page').classList.add('active');
+        document.getElementById('caseStudyWrapper').style.display = 'none';
+        document.getElementById('navWrapper').classList.add('hidden');
+        
+        // Update nav links
         document.querySelectorAll('.nav-link[data-case]').forEach(link => {
+            link.classList.remove('active');
+        });
+        
+        // Update URL hash
+        history.replaceState(null, null, '#landing');
+    }
+
+    function initNavigation() {
+        // Set up case study navigation
+        document.querySelectorAll('.nav-link[data-case], .case-study-card[data-case]').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 switchCaseStudy(link.dataset.case);
             });
         });
         
-        // Handle initial hash or default to first case study - just set active class
-        const hash = window.location.hash.slice(1);
-        const initialCase = caseStudyConfig[hash] ? hash : 'product-ownership';
-        
-        // Set initial active case without map update (map doesn't exist yet)
-        currentCaseStudy = initialCase;
-        document.getElementById(initialCase).classList.add('active');
-        document.querySelectorAll('.nav-link[data-case]').forEach(link => {
-            link.classList.toggle('active', link.dataset.case === initialCase);
+        // Set up profile link to go to landing
+        document.getElementById('profileLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            showLanding();
         });
+        
+        // Handle initial hash
+        const hash = window.location.hash.slice(1);
+        if (hash && caseStudyConfig[hash]) {
+            // Initialize map first, then switch to case study
+            setTimeout(() => switchCaseStudy(hash), 100);
+        } else {
+            // Show landing page
+            showLanding();
+        }
         
         // Handle browser back/forward
         window.addEventListener('hashchange', () => {
             const hash = window.location.hash.slice(1);
-            if (caseStudyConfig[hash]) {
+            if (hash === 'landing' || !hash) {
+                showLanding();
+            } else if (caseStudyConfig[hash]) {
                 switchCaseStudy(hash);
             }
         });
@@ -1895,6 +2153,7 @@
         // Keyboard
         document.addEventListener('keydown', (e) => {
             if (document.getElementById('gisModal').classList.contains('visible')) return;
+            if (!currentCaseStudy) return; // Disable keyboard shortcuts on landing page
 
             if (e.key >= '1' && e.key <= '5') { 
                 // Map key 5 to mode 0 (animation), keys 1-4 stay as is
@@ -1919,6 +2178,7 @@
         // Nav hex hover â†’ keymap tooltip
         const tooltip = document.getElementById('keymapTooltip');
         canvas.addEventListener('mousemove', (e) => {
+            if (!currentCaseStudy) return;
             const r = canvas.getBoundingClientRect();
             const x = e.clientX - r.left, y = e.clientY - r.top;
             if (window.navHex && worldwideLoaded && window.navHex.containsPoint(x, y)) {
@@ -1987,6 +2247,8 @@
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.keymap-key[data-key]').forEach(key => {
             const handler = (e) => {
+                if (!currentCaseStudy) return; // Disable on landing page
+                
                 e.preventDefault();
                 e.stopPropagation();
                 const keyValue = key.getAttribute('data-key');
