@@ -281,7 +281,8 @@
         .landing-content {
             display: flex;
             flex-direction: column;
-            gap: 30px;
+            justify-content: space-between;
+            min-height: 100%;
         }
 
         .landing-portrait {
@@ -820,7 +821,7 @@
         /* RESPONSIVE */
         @media (max-width: 900px) {
             body {
-                padding: 40px;
+                padding: 30px 20px;
             }
 
             .nav-wrapper {
@@ -860,14 +861,30 @@
                 font-size: 1.5rem;
             }
 
+            /* Landing page mobile styles */
+            .landing-intro {
+                text-align: left;
+                margin-left: 30px; /* Space for red hex */
+                margin-right: 0;
+            }
+
             .landing-intro h1 {
-                font-size: 2rem;
+                font-size: 1.6rem;
+                margin-bottom: 20px;
+            }
+
+            .landing-intro h1::before {
+                left: -30px; /* Position hex in left margin */
+                top: 8px;
+                width: 18px;
+                height: 20.8px;
             }
 
             .landing-intro .landing-tagline,
             .landing-intro .landing-cta,
             .landing-intro .landing-examples {
-                font-size: 1.2rem;
+                font-size: 1rem;
+                margin-bottom: 15px;
             }
 
             .landing-hero {
@@ -875,14 +892,15 @@
                 gap: 30px;
             }
 
-            .landing-portrait {
-                width: 200px;
-                height: 200px;
-                justify-self: center;
+            .landing-content {
+                gap: 25px;
             }
 
-            .landing-intro {
-                text-align: center;
+            .landing-portrait {
+                width: 180px;
+                height: 180px;
+                justify-self: center;
+                margin: 0 auto;
             }
 
             .case-study-card {
@@ -2334,17 +2352,24 @@
         // Keyboard
         document.addEventListener('keydown', (e) => {
             if (document.getElementById('gisModal').classList.contains('visible')) return;
-            if (!currentCaseStudy) return; // Disable keyboard shortcuts on landing page
+            if (!currentCaseStudy) return; // Only enable on case study pages with maps
 
+            // Keys 1-5 for debug modes (5 = animation/mode 0)
             if (e.key >= '1' && e.key <= '5') { 
-                // Map key 5 to mode 0 (animation), keys 1-4 stay as is
                 const mode = e.key === '5' ? 0 : parseInt(e.key);
                 setDebugMode(mode); 
                 e.preventDefault(); 
                 return; 
             }
-            if (e.key.toLowerCase() === 'i') { document.getElementById('gisModal').classList.add('visible'); e.preventDefault(); return; }
+            
+            // Key 'i' for GIS modal
+            if (e.key.toLowerCase() === 'i') { 
+                document.getElementById('gisModal').classList.add('visible'); 
+                e.preventDefault(); 
+                return; 
+            }
 
+            // WASD for map panning
             const c = map.getCenter(), z = map.getZoom(), p = 0.1;
             switch (e.key.toLowerCase()) {
                 case 'w': map.setView([c.lat + p, c.lng]); e.preventDefault(); break;
@@ -2392,18 +2417,25 @@
                         const height = descBottom - h1Top;
                         mc.style.height = height + 'px';
                     }
-                }
-                canvas.width = mc.clientWidth;
-                canvas.height = mc.clientHeight;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                map.invalidateSize();
+                    
+                    // Resize canvas
+                    canvas.width = mc.clientWidth;
+                    canvas.height = mc.clientHeight;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    map.invalidateSize();
 
-                window._resizeTimeout = setTimeout(() => {
-                    isResizing = false;
-                    if (debugMode === 0) { generateHexagons(); triggerAnimation(); }
-                    else setDebugMode(debugMode);
-                    canvas.style.opacity = '1';
-                }, 300);
+                    window._resizeTimeout = setTimeout(() => {
+                        isResizing = false;
+                        // Regenerate hexagons after resize
+                        if (debugMode === 0) { 
+                            generateHexagons(); 
+                            triggerAnimation(); 
+                        } else {
+                            setDebugMode(debugMode);
+                        }
+                        canvas.style.opacity = '1';
+                    }, 300);
+                }
             });
         });
     }
@@ -2882,53 +2914,55 @@
         
         landingCtx = landingCanvas.getContext('2d');
         
-        // Wait for 3 animation frames to ensure layout is COMPLETELY stable
-        requestAnimationFrame(() => {
+        // Wait for layout to be completely stable - use a longer delay on first load
+        setTimeout(() => {
+            // Force a layout flush first
+            landingCanvas.offsetHeight;
+            
             requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    // Get ACTUAL rendered size using getBoundingClientRect (more reliable than getComputedStyle)
-                    const rect = landingCanvas.getBoundingClientRect();
-                    const size = Math.floor(rect.width);
+                // Get ACTUAL rendered size using getBoundingClientRect
+                const rect = landingCanvas.getBoundingClientRect();
+                const size = Math.floor(rect.width);
+                
+                console.log('Canvas actual rendered size:', size, 'x', size);
+                
+                // Lock canvas dimensions - INTERNAL and CSS with max constraints
+                landingCanvas.width = size;
+                landingCanvas.height = size;
+                
+                // Force CSS dimensions to prevent ANY resizing whatsoever
+                landingCanvas.style.width = size + 'px';
+                landingCanvas.style.height = size + 'px';
+                landingCanvas.style.minWidth = size + 'px';
+                landingCanvas.style.minHeight = size + 'px';
+                landingCanvas.style.maxWidth = size + 'px';
+                landingCanvas.style.maxHeight = size + 'px';
+                landingCanvas.style.flex = 'none'; // Prevent flex from stretching it
+                
+                // Clear canvas immediately
+                landingCtx.clearRect(0, 0, size, size);
+                
+                console.log('Canvas locked at size:', size, 'x', size);
+                
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.src = 'jurgen-portrait-cropped.png';
+                
+                img.onerror = () => {
+                    console.error('Failed to load portrait image:', img.src);
+                };
+                
+                img.onload = () => {
+                    console.log('Portrait image loaded, dimensions:', img.width, 'x', img.height);
                     
-                    console.log('Canvas actual rendered size:', size, 'x', size);
+                    // Store the size so we can verify it hasn't changed
+                    landingCanvas.dataset.lockedSize = size;
                     
-                    // Lock canvas dimensions - INTERNAL and CSS
-                    landingCanvas.width = size;
-                    landingCanvas.height = size;
-                    
-                    // Force CSS dimensions to prevent ANY resizing
-                    landingCanvas.style.width = size + 'px';
-                    landingCanvas.style.height = size + 'px';
-                    landingCanvas.style.minWidth = size + 'px';
-                    landingCanvas.style.minHeight = size + 'px';
-                    landingCanvas.style.maxWidth = size + 'px';
-                    landingCanvas.style.maxHeight = size + 'px';
-                    
-                    // Clear canvas immediately
-                    landingCtx.clearRect(0, 0, size, size);
-                    
-                    console.log('Canvas locked at size:', size, 'x', size);
-                    
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.src = 'jurgen-portrait-cropped.png';
-                    
-                    img.onerror = () => {
-                        console.error('Failed to load portrait image:', img.src);
-                    };
-                    
-                    img.onload = () => {
-                        console.log('Portrait image loaded, dimensions:', img.width, 'x', img.height);
-                        
-                        // Store the size so we can verify it hasn't changed
-                        landingCanvas.dataset.lockedSize = size;
-                        
-                        generateLandingHexagons(img);
-                        triggerLandingAnimation();
-                    };
-                });
+                    generateLandingHexagons(img);
+                    triggerLandingAnimation();
+                };
             });
-        });
+        }, 100); // 100ms delay on first load to ensure layout is rock solid
     }
     
     // Touch/click handlers for keymap keys
