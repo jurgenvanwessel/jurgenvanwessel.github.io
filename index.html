@@ -2351,50 +2351,67 @@
 
         // Keyboard
         document.addEventListener('keydown', (e) => {
-            if (document.getElementById('gisModal').classList.contains('visible')) return;
-            if (!currentCaseStudy) return; // Only enable on case study pages with maps
+	    // Escape key should always work for the modal
+	    if (e.key === 'Escape') closeGISModal();
+	    
+	    // Only enable map controls if we are actually in a case study
+	    if (!currentCaseStudy) return;
 
-            // Keys 1-5 for debug modes (5 = animation/mode 0)
-            if (e.key >= '1' && e.key <= '5') { 
-                const mode = e.key === '5' ? 0 : parseInt(e.key);
-                setDebugMode(mode); 
-                e.preventDefault(); 
-                return; 
-            }
-            
-            // Key 'i' for GIS modal
-            if (e.key.toLowerCase() === 'i') { 
-                document.getElementById('gisModal').classList.add('visible'); 
-                e.preventDefault(); 
-                return; 
-            }
+	    // Secret Debug Modes (0-5)
+	    if (e.key >= '0' && e.key <= '5') {
+		setDebugMode(parseInt(e.key));
+		e.preventDefault();
+		return;
+	    }
 
-            // WASD for map panning
-            const c = map.getCenter(), z = map.getZoom(), p = 0.1;
-            switch (e.key.toLowerCase()) {
-                case 'w': map.setView([c.lat + p, c.lng]); e.preventDefault(); break;
-                case 's': map.setView([c.lat - p, c.lng]); e.preventDefault(); break;
-                case 'a': map.setView([c.lat, c.lng - p]); e.preventDefault(); break;
-                case 'd': map.setView([c.lat, c.lng + p]); e.preventDefault(); break;
-                case '+': case '=': map.setZoom(z + 1); e.preventDefault(); break;
-                case '-': case '_': map.setZoom(z - 1); e.preventDefault(); break;
-            }
-        });
+	    // Key 'i' for the GIS Technical Modal
+	    if (e.key.toLowerCase() === 'i') {
+		document.getElementById('gisModal').classList.add('visible');
+		e.preventDefault();
+		return;
+	    }
 
+	    // WASD Map Panning & +- Zooming
+	    const c = map.getCenter();
+	    const z = map.getZoom();
+	    const p = 0.05; // Pan sensitivity
+
+	    switch (e.key.toLowerCase()) {
+		case 'w': map.setView([c.lat + p, c.lng]); e.preventDefault(); break;
+		case 's': map.setView([c.lat - p, c.lng]); e.preventDefault(); break;
+		case 'a': map.setView([c.lat, c.lng - p]); e.preventDefault(); break;
+		case 'd': map.setView([c.lat, c.lng + p]); e.preventDefault(); break;
+		case '+': case '=': map.setZoom(z + 1); e.preventDefault(); break;
+		case '-': case '_': map.setZoom(z - 1); e.preventDefault(); break;
+	    }
+	});
+	
         // Nav hex hover â†’ keymap tooltip
         const tooltip = document.getElementById('keymapTooltip');
-        canvas.addEventListener('mousemove', (e) => {
-            if (!currentCaseStudy) return;
-            const r = canvas.getBoundingClientRect();
-            const x = e.clientX - r.left, y = e.clientY - r.top;
-            if (window.navHex && worldwideLoaded && window.navHex.containsPoint(x, y)) {
-                canvas.style.cursor = 'help';
-                tooltip.classList.add('visible');
-            } else {
-                canvas.style.cursor = 'default';
-                tooltip.classList.remove('visible');
-            }
-        });
+	canvas.addEventListener('mousemove', (e) => {
+	    // Only show tooltip if on a case study and worldwide data is ready
+	    if (!currentCaseStudy || !worldwideLoaded) return;
+
+	    const r = canvas.getBoundingClientRect();
+	    const x = e.clientX - r.left;
+	    const y = e.clientY - r.top;
+
+	    // Check if mouse is hovering over the navigation (silver) hex
+	    if (window.navHex) {
+		const dx = x - window.navHex.x;
+		const dy = y - window.navHex.y;
+		const dist = Math.sqrt(dx * dx + dy * dy);
+
+		// If mouse is within the silver hex radius
+		if (dist < window.navHex.size) {
+		    tooltip.classList.add('visible');
+		    canvas.style.cursor = 'help';
+		} else {
+		    tooltip.classList.remove('visible');
+		    canvas.style.cursor = 'default';
+        	}
+	    }
+	});
         canvas.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
 
         // Resize: hide canvas, debounce, recalc, show
