@@ -2903,67 +2903,62 @@
         requestAnimationFrame(animateLandingHexagons);
     }
 
-    function initLandingPortrait() {
-        landingCanvas = document.getElementById('landingPortrait');
-        if (!landingCanvas) {
-            console.log('Landing portrait canvas not found');
-            return;
-        }
-        
-        console.log('Initializing landing portrait hex animation');
-        
-        landingCtx = landingCanvas.getContext('2d');
-        
-        // Wait for layout to be completely stable - use a longer delay on first load
-        setTimeout(() => {
-            // Force a layout flush first
-            landingCanvas.offsetHeight;
-            
-            requestAnimationFrame(() => {
-                // Get ACTUAL rendered size using getBoundingClientRect
-                const rect = landingCanvas.getBoundingClientRect();
-                const size = Math.floor(rect.width);
-                
-                console.log('Canvas actual rendered size:', size, 'x', size);
-                
-                // Lock canvas dimensions - INTERNAL and CSS with max constraints
-                landingCanvas.width = size;
-                landingCanvas.height = size;
-                
-                // Force CSS dimensions to prevent ANY resizing whatsoever
-                landingCanvas.style.width = size + 'px';
-                landingCanvas.style.height = size + 'px';
-                landingCanvas.style.minWidth = size + 'px';
-                landingCanvas.style.minHeight = size + 'px';
-                landingCanvas.style.maxWidth = size + 'px';
-                landingCanvas.style.maxHeight = size + 'px';
-                landingCanvas.style.flex = 'none'; // Prevent flex from stretching it
-                
-                // Clear canvas immediately
-                landingCtx.clearRect(0, 0, size, size);
-                
-                console.log('Canvas locked at size:', size, 'x', size);
-                
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.src = 'jurgen-portrait-cropped.png';
-                
-                img.onerror = () => {
-                    console.error('Failed to load portrait image:', img.src);
-                };
-                
-                img.onload = () => {
-                    console.log('Portrait image loaded, dimensions:', img.width, 'x', img.height);
-                    
-                    // Store the size so we can verify it hasn't changed
-                    landingCanvas.dataset.lockedSize = size;
-                    
-                    generateLandingHexagons(img);
-                    triggerLandingAnimation();
-                };
-            });
-        }, 100); // 100ms delay on first load to ensure layout is rock solid
-    }
+    // --- Updated initLandingPortrait for stable first-load ---
+	function initLandingPortrait() {
+	    landingCanvas = document.getElementById('landingPortrait');
+	    if (!landingCanvas) return;
+
+	    landingCtx = landingCanvas.getContext('2d');
+
+	    // Use ResizeObserver to detect when the layout is stable and has a size
+	    const ro = new ResizeObserver(entries => {
+		for (let entry of entries) {
+		    // Use the actual pixel width calculated by the browser layout engine
+		    const width = Math.floor(entry.contentRect.width);
+		    
+		    if (width > 0) {
+		        // 1. Lock the internal resolution to match the display size exactly
+		        // This prevents the "jump" or "stutter" at the end of the animation
+		        landingCanvas.width = width;
+		        landingCanvas.height = width;
+
+		        // 2. Load the image and generate hexagons only once the size is locked
+		        const img = new Image();
+		        img.src = 'profile_avatar.png';
+		        img.onload = () => {
+		            generateLandingHexagons(img);
+		            triggerLandingAnimation();
+		        };
+
+		        // 3. Stop observing once we've initialized to prevent loops
+		        ro.unobserve(landingCanvas);
+		    }
+		}
+	    });
+
+	    ro.observe(landingCanvas);
+	}
+
+	// Ensure the showLanding function calls the new init logic correctly
+	function showLanding() {
+	    currentCaseStudy = null;
+	    document.getElementById('landing-page').classList.add('active');
+	    document.getElementById('caseStudyWrapper').style.display = 'none';
+	    document.getElementById('navWrapper').classList.add('hidden');
+
+	    // If we already have hexagons (returning from elsewhere), just play
+	    if (landingHexagons && landingHexagons.length > 0) {
+		triggerLandingAnimation();
+	    } else {
+		// First load or fresh init
+		initLandingPortrait();
+	    }
+
+	    document.querySelectorAll('.nav-link[data-case]').forEach(link => {
+		link.classList.remove('active');
+	    });
+	    history.replaceState(null, null, '#landing');
+	}
     
     // Touch/click handlers for keymap keys
     document.addEventListener('DOMContentLoaded', () => {
