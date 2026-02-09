@@ -1587,6 +1587,16 @@
             return pts;
         }
 
+	// ADD THIS METHOD HERE:
+    	containsPoint(px, py) {
+        const dx = Math.abs(px - this.x);
+        const dy = Math.abs(py - this.y);
+        const s = this.size;
+        // Hexagonal distance check
+        return (dy <= s * 1.5 * 0.5) && (dx <= Math.sqrt(3) * s * 0.5) && 
+               (s * 0.5 * Math.sqrt(3) * s * 0.5 - dx * s * 0.5 - dy * Math.sqrt(3) * s * 0.5 / 3 >= 0);
+    }
+
         startAnimation(now) {
             if (!this.startTime) this.startTime = now + this.animationDelay;
         }
@@ -2070,7 +2080,10 @@
     let currentCaseStudy = null;
 
     function switchCaseStudy(caseId) {
+        
         if (currentCaseStudy === caseId) return;
+        // Ensure this is set immediately
+    	currentCaseStudy = caseId;
         
         const wasOnLanding = (currentCaseStudy === null);
         currentCaseStudy = caseId;
@@ -2387,29 +2400,29 @@
 	});
 	
         // Nav hex hover â†’ keymap tooltip
-        const tooltip = document.getElementById('keymapTooltip');
+        // Nav hex hover -> keymap tooltip
+	const tooltip = document.getElementById('keymapTooltip');
 	canvas.addEventListener('mousemove', (e) => {
-	    // Only show tooltip if on a case study and worldwide data is ready
-	    if (!currentCaseStudy || !worldwideLoaded) return;
+	    if (!currentCaseStudy) return;
 
 	    const r = canvas.getBoundingClientRect();
 	    const x = e.clientX - r.left;
 	    const y = e.clientY - r.top;
 
-	    // Check if mouse is hovering over the navigation (silver) hex
-	    if (window.navHex) {
+	    // Check if worldwide data is ready and navHex exists
+	    if (window.navHex && worldwideLoaded) {
 		const dx = x - window.navHex.x;
 		const dy = y - window.navHex.y;
 		const dist = Math.sqrt(dx * dx + dy * dy);
 
-		// If mouse is within the silver hex radius
-		if (dist < window.navHex.size) {
+		// Use a simple radius check (size * 1.2) for better "hit" feel
+		if (dist < window.navHex.size * 1.2) {
 		    tooltip.classList.add('visible');
 		    canvas.style.cursor = 'help';
 		} else {
 		    tooltip.classList.remove('visible');
 		    canvas.style.cursor = 'default';
-        	}
+		}
 	    }
 	});
         canvas.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
