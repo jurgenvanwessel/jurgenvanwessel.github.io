@@ -18,11 +18,15 @@
             font-family: 'Courier New', monospace;
             background: #E8D4A2;
             color: #5C4A3A;
-            padding: 60px 80px;
+            padding: 0 80px;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            gap: 30px;
+        }
+
+        body.case-study-active {
+            height: 100vh;
+            overflow: hidden;
         }
 
         .nav-wrapper {
@@ -30,10 +34,12 @@
             display: flex;
             align-items: center;
             gap: 30px;
-            padding-bottom: 5px;
-            margin-bottom: 40px;
+            padding: 30px 0 5px 0;
             border-bottom: 1px solid rgba(92, 74, 58, 0.2);
-            position: relative;
+            z-index: 2000;
+            background: #E8D4A2;
+            flex-shrink: 0;
+            margin-bottom: 0;
         }
 
         .nav-wrapper.hidden {
@@ -45,12 +51,32 @@
             grid-template-columns: 1fr 35%;
             gap: 60px;
             align-items: start;
+            flex: 1;
+            min-height: 0;
+            padding: 30px 0 0 0;
         }
 
         .content {
             display: flex;
             flex-direction: column;
             gap: 30px;
+            overflow-y: auto;
+            max-height: 100%;
+            padding-bottom: 80px;
+            padding-top: 25px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(92, 74, 58, 0.2) transparent;
+        }
+
+        .content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .content::-webkit-scrollbar-thumb {
+            background: rgba(92, 74, 58, 0.2);
+            border-radius: 3px;
         }
 
         .text-section {
@@ -261,13 +287,15 @@
             display: none;
             max-width: 1800px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 85px 20px 80px 20px;
         }
 
         .landing-page.active {
             display: flex;
             flex-direction: column;
             gap: 40px;
+            flex: 1;
+            min-height: 0;
         }
 
         .landing-hero {
@@ -593,9 +621,8 @@
 
         /* MAP */
         .hero {
-            position: sticky;
-            top: 0;
             align-self: start;
+            padding-top: 10px;
         }
 
         .map-container {
@@ -835,15 +862,38 @@
 
         /* RESPONSIVE */
         @media (max-width: 900px) {
-            body {
+            body, body.case-study-active {
                 padding: 30px 20px;
+                height: auto;
+                overflow: auto;
             }
 
             .nav-wrapper {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 15px;
-                padding-bottom: 25px;
+                padding: 0 0 25px 0;
+            }
+
+            .hero {
+                padding-top: 0;
+            }
+
+            .page-wrapper {
+                min-height: auto;
+                padding: 0;
+            }
+
+            .content {
+                overflow-y: visible;
+                max-height: none;
+                padding-bottom: 30px;
+                padding-top: 0;
+            }
+
+            .landing-page {
+                overflow-y: visible;
+                padding: 20px 0;
             }
 
             .profile-image {
@@ -914,6 +964,7 @@
             .landing-intro h1 {
                 font-size: 1.6rem;
                 margin-bottom: 20px;
+                font-weight: 700;
             }
 
             .landing-intro h1::before {
@@ -928,6 +979,10 @@
             .landing-intro .landing-examples {
                 font-size: 1rem;
                 margin-bottom: 15px;
+            }
+
+            .landing-intro .landing-cta {
+                font-weight: 700;
             }
 
             .landing-hero {
@@ -954,7 +1009,7 @@
 </head>
 <body>
     <!-- NAVIGATION BAR -->
-    <div class="nav-wrapper" id="navWrapper">
+    <div class="nav-wrapper hidden" id="navWrapper">
         <a href="#landing" class="profile" id="profileLink">
             <img src="profile_avatar.png" alt="Jürgen van Wessel" class="profile-image">
             <div class="profile-name">Jürgen van Wessel</div>
@@ -977,7 +1032,7 @@
                 </svg>
             </a>
             <a href="mailto:jurgenvanwessel@outlook.com?subject=Portfolio%20resume%20request" class="resume-link" title="Request Resume">
-                Resume on request
+                Resume
             </a>
         </div>
     </div>
@@ -1049,7 +1104,7 @@
                             </svg>
                         </a>
                         <a href="mailto:jurgenvanwessel@outlook.com?subject=Portfolio%20resume%20request" class="availability-resume-link" title="Request Resume">
-                            Resume on request
+                            Resume
                         </a>
                     </div>
                     
@@ -1062,7 +1117,7 @@
     </div>
 
     <!-- PAGE LAYOUT -->
-    <div class="page-wrapper" id="caseStudyWrapper">
+    <div class="page-wrapper" id="caseStudyWrapper" style="display: none;">
         <div class="content">
             <div class="text-section">
 
@@ -1421,19 +1476,21 @@
     // MAP HEIGHT: compute from text column, clamped to viewport
     // ============================================================
     function computeMapHeight(activeCase) {
-        const h1 = activeCase.querySelector('h1');
         const description = activeCase.querySelector('.description');
         const mc = document.getElementById('mapContainer');
-        if (!h1 || !description || !mc) return null;
-        const h1Top = h1.getBoundingClientRect().top;
-        const descBottom = description.getBoundingClientRect().bottom;
-        const textHeight = descBottom - h1Top;
-        // Never extend beyond the bottom of the viewport
+        if (!description || !mc) return null;
         const mapTop = mc.getBoundingClientRect().top;
-        const maxHeight = window.innerHeight - mapTop;
-        // Never narrower than 3:4 (width:height), i.e. min height = width * 4/3
-        const minHeight = mc.clientWidth * (4 / 3);
-        return Math.max(Math.min(textHeight, maxHeight), minHeight);
+        const descBottom = description.getBoundingClientRect().bottom;
+        // Bottom margin matching body's right padding (80px desktop, 20px mobile)
+        const bottomMargin = window.innerWidth <= 900 ? 20 : 80;
+        // Never taller than 3:4 aspect ratio (width:height)
+        const maxRatio = mc.clientWidth * (4 / 3);
+        // Take the most restrictive constraint
+        return Math.min(
+            descBottom - mapTop,               // not below results section
+            window.innerHeight - mapTop - bottomMargin, // not below screen (with margin)
+            maxRatio                            // not narrower than 3:4
+        );
     }
 
     // ============================================================
@@ -2156,6 +2213,7 @@
         document.getElementById('landing-page').classList.remove('active');
         document.getElementById('caseStudyWrapper').style.display = 'grid';
         document.getElementById('navWrapper').classList.remove('hidden');
+        document.body.classList.add('case-study-active');
         
         // If coming from landing page, need to initialize map first
         if (wasOnLanding && !map) {
@@ -2220,6 +2278,7 @@
         document.getElementById('landing-page').classList.add('active');
         document.getElementById('caseStudyWrapper').style.display = 'none';
         document.getElementById('navWrapper').classList.add('hidden');
+        document.body.classList.remove('case-study-active');
         
         // Initialize hex portrait
         initHexPortrait();
@@ -2275,6 +2334,46 @@
     }
 
     // ============================================================
+    // MAP EVENT HANDLERS (called from both init paths)
+    // ============================================================
+    let mapEventsRegistered = false;
+    function registerMapEvents() {
+        if (mapEventsRegistered || !map) return;
+        mapEventsRegistered = true;
+
+        map.on('move', () => {
+            if (isResizing) return;
+            if (debugMode === 2) drawBoundaries();
+            else if (debugMode === 3) drawPointGrid();
+            else if (debugMode === 4) drawHexagonsStatic();
+        });
+
+        map.on('moveend', () => {
+            if (isResizing) return;
+            if (debugMode === 0) { 
+                canvas.style.opacity = '0';
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                generateHexagons(); 
+                canvas.style.opacity = '1';
+                triggerAnimation(); 
+            }
+            else setDebugMode(debugMode);
+        });
+
+        map.on('zoomend', () => {
+            if (isResizing) return;
+            if (debugMode === 0) { 
+                canvas.style.opacity = '0';
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                generateHexagons(); 
+                canvas.style.opacity = '1';
+                triggerAnimation(); 
+            }
+            else setDebugMode(debugMode);
+        });
+    }
+
+    // ============================================================
     // INIT MAP (lazy - only when needed)
     // ============================================================
     async function initMap() {
@@ -2308,6 +2407,9 @@
         }).addTo(map);
 
         map.invalidateSize();
+
+        // Register map pan/zoom event handlers
+        registerMapEvents();
 
         // Load boundaries
         geoJsonData = EMBEDDED_BOUNDARIES;
@@ -2531,37 +2633,8 @@
 
         // ---- EVENT HANDLERS ----
 
-        // Map pan/zoom: update debug views live, regenerate hexes on end
-        map.on('move', () => {
-            if (isResizing) return;
-            if (debugMode === 2) drawBoundaries();
-            else if (debugMode === 3) drawPointGrid();
-            else if (debugMode === 4) drawHexagonsStatic();
-        });
-
-        map.on('moveend', () => {
-            if (isResizing) return;
-            if (debugMode === 0) { 
-                canvas.style.opacity = '0';
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                generateHexagons(); 
-                canvas.style.opacity = '1';
-                triggerAnimation(); 
-            }
-            else setDebugMode(debugMode);
-        });
-
-        map.on('zoomend', () => {
-            if (isResizing) return;
-            if (debugMode === 0) { 
-                canvas.style.opacity = '0';
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                generateHexagons(); 
-                canvas.style.opacity = '1';
-                triggerAnimation(); 
-            }
-            else setDebugMode(debugMode);
-        });
+        // Map pan/zoom handlers (also registered from initMap for landing->case study path)
+        registerMapEvents();
 
 
 
@@ -3075,6 +3148,7 @@
 	    document.getElementById('landing-page').classList.add('active');
 	    document.getElementById('caseStudyWrapper').style.display = 'none';
 	    document.getElementById('navWrapper').classList.add('hidden');
+	    document.body.classList.remove('case-study-active');
 
 	    // If we already have hexagons (returning from elsewhere), just play
 	    if (landingHexagons && landingHexagons.length > 0) {
