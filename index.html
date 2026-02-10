@@ -247,6 +247,7 @@
 
         .case-study {
             display: none;
+            overflow-x: hidden;
         }
 
         .case-study.active {
@@ -291,6 +292,7 @@
             border-radius: 12px;
             display: block;
             background: transparent;
+            transition: opacity 0.2s ease;
         }
 
         .landing-availability {
@@ -607,7 +609,12 @@
             height: 100%;
             opacity: 0;
             transition: opacity 0.3s ease;
+            pointer-events: auto;
         }
+
+	body.help-active #map {
+   		cursor: help !important;
+	}
 
         #map.debug-visible {
             opacity: 1;
@@ -653,28 +660,36 @@
             opacity: 1;
         }
 
-        /* KEYMAP TOOLTIP */
-        .keymap-tooltip {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(107, 84, 66, 0.95);
-            color: #E8D4A2;
-            padding: 15px 20px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            line-height: 1.6;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-            z-index: 3000;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            min-width: 200px;
-        }
+	/* Target by ID for maximum priority */
+	.keymap-tooltip {
+    position: fixed !important; /* Fixed is relative to the viewport, not the hero div */
+    bottom: 30px !important;
+    right: 30px !important;
+    background: #fdf6e3 !important; /* Light creamy background */
+    color: #5C4A3A !important;
+    padding: 15px !important;
+    border: 2px solid #5C4A3A !important;
+    border-radius: 4px !important;
+    box-shadow: 6px 6px 0px rgba(92, 74, 58, 0.2) !important;
+    z-index: 2000000 !important; /* "God mode" z-index */
+    pointer-events: none;
+    display: none; /* Controlled by JS */
+    font-family: 'Courier New', monospace;
+    width: 240px !important;
+}
 
-        .keymap-tooltip.visible {
-            opacity: 1;
-        }
+.keymap-tooltip.visible {
+    display: block !important;
+}
+
+.keymap-row { margin-bottom: 5px; }
+.key { 
+    background: #5C4A3A; 
+    color: #E8D4A2; 
+    padding: 0 5px; 
+    border-radius: 3px; 
+    margin-right: 5px; 
+}
 
         .keymap-mobile-message {
             display: none;
@@ -859,6 +874,34 @@
 
             h1 {
                 font-size: 1.5rem;
+            }
+
+            .stats {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+
+            .stat-number {
+                font-size: 1.2rem;
+            }
+
+            .image-placeholder {
+                max-width: 100%;
+            }
+
+            .image-placeholder > div[style*="grid"] {
+                max-width: 100% !important;
+                gap: 15px !important;
+                padding: 10px !important;
+            }
+
+            .image-placeholder > div[style*="grid"] > div {
+                min-height: 80px !important;
+            }
+
+            .details-content ul,
+            .details-content ol {
+                margin-left: 15px !important;
             }
 
             /* Landing page mobile styles */
@@ -1269,7 +1312,46 @@
                 <div id="map"></div>
                 <canvas id="canvas"></canvas>
                 <div class="debug-info" id="debugInfo"></div>
-                <div class="keymap-tooltip" id="keymapTooltip">
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- GIS MODAL -->
+    <div class="gis-modal-overlay" id="gisModal">
+        <div class="gis-modal">
+            <button class="gis-modal-close" onclick="closeGISModal()">×</button>
+            <h2>How This Map Works</h2>
+            
+            <p>This hexagonal visualization is a fully functional geospatial system, built entirely as a single HTML file. No backend, no database, no tile server for the boundaries â€” just client-side GIS running in the browser.</p>
+            
+            <h3>Coordinate Systems & Projection</h3>
+            <p>The underlying map tiles render in <code>EPSG:3857</code> (Web Mercator), which is the standard for web mapping. Country boundary polygons are stored as <code>EPSG:4326</code> (WGS84 lon/lat) GeoJSON. On every render pass, each boundary vertex is projected from geographic coordinates into pixel space using Leaflet's <code>latLngToContainerPoint()</code> â€” a fast Web Mercator forward projection. The hexagon grid is then tessellated entirely in screen space, with each centre point tested against the projected polygons.</p>
+            
+            <h3>Two-Phase Boundary Loading</h3>
+            <p>To keep the page feeling instant while still supporting worldwide panning, the boundaries load in two phases. A simplified UK/Ireland polygon (~500 vertices, derived from Natural Earth 110m data) is embedded directly in the HTML. This lets the Scotland hexagon animation run within a couple hundred milliseconds of page load â€” no network request required.</p>
+            <p>In the background, the full worldwide Natural Earth dataset fetches asynchronously. Once it arrives, a spatial index is built and the system silently upgrades. The silver navigation hexagon only appears at this point, as a subtle signal that worldwide mode is ready.</p>
+            
+            <h3>Spatial Indexing</h3>
+            <p>The worldwide dataset contains ~195 country polygons. Without optimisation, every pan or zoom would require projecting all of them into screen coordinates â€” most of which aren't visible. To solve this, each country's bounding box is indexed in a simple R-tree structure on load. Before any coordinate conversion, a viewport query returns only the countries whose bounding boxes intersect the current map extent. Typically that's 1â€“5 polygons instead of 195.</p>
+            
+            <h3>Hexagonal Tessellation & Point-in-Polygon</h3>
+            <p>The hex grid uses flat-top orientation with standard offset coordinates: <code>hexWidth = √3 × size</code>, <code>rowHeight = 1.5 × size</code>, with odd rows shifted by <code>hexWidth / 2</code>. Each hex centre is tested against the screen-space boundary polygons using a ray-casting algorithm â€” casting a horizontal ray and counting edge crossings to determine inside/outside. Aberdeen (57.15°N, 2.09°W) is flagged within a 0.3° radius and rendered in red.</p>
+            
+            <h3>Animation</h3>
+            <p>Each hexagon animates via a <code>scaleY = cos(θ)</code> transform, creating the appearance of flipping in from edge-on. The animation staggers by row (50ms per row) with cubic ease-out and a small sine-wave bounce at the end. The entire animation re-runs whenever hexagons are regenerated â€” on pan, zoom, or resize.</p>
+            
+            <h3>Resize Handling</h3>
+            <p>Window resize is the trickiest part. The map container height is bound to the text column height, so resizing can change both simultaneously. All canvas drawing is suspended during resize (an <code>isResizing</code> flag gates every draw call), the canvas is hidden, and recalculation only fires after a 300ms debounce once the layout has settled. This prevents the stutter you'd otherwise see from repeated expensive polygon operations mid-resize.</p>
+            
+            <h3>Why a Single File?</h3>
+            <p>This is a portfolio piece, not a production application. The constraint of a single HTML file is actually a feature â€” it's portable, requires no build step, and can be opened from anywhere. The GIS techniques used here (spatial indexing, viewport culling, progressive loading) are the same ones you'd reach for in a production system, just implemented in a context where they have to pull their weight without any infrastructure behind them.</p>
+            
+            <p style="margin-top: 30px; font-size: 0.85rem; color: #8B7355; font-style: italic;">Press Escape or click outside to close.</p>
+        </div>
+    </div>
+
+<div class="keymap-tooltip" id="keymapTooltip">
                     <div class="keymap-mobile-message">
                         ðŸ¥š You found the easter egg!<br>
                         This egg currently only works on desktop.<br>
@@ -1317,43 +1399,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- GIS MODAL -->
-    <div class="gis-modal-overlay" id="gisModal">
-        <div class="gis-modal">
-            <button class="gis-modal-close" onclick="closeGISModal()">×</button>
-            <h2>How This Map Works</h2>
-            
-            <p>This hexagonal visualization is a fully functional geospatial system, built entirely as a single HTML file. No backend, no database, no tile server for the boundaries â€” just client-side GIS running in the browser.</p>
-            
-            <h3>Coordinate Systems & Projection</h3>
-            <p>The underlying map tiles render in <code>EPSG:3857</code> (Web Mercator), which is the standard for web mapping. Country boundary polygons are stored as <code>EPSG:4326</code> (WGS84 lon/lat) GeoJSON. On every render pass, each boundary vertex is projected from geographic coordinates into pixel space using Leaflet's <code>latLngToContainerPoint()</code> â€” a fast Web Mercator forward projection. The hexagon grid is then tessellated entirely in screen space, with each centre point tested against the projected polygons.</p>
-            
-            <h3>Two-Phase Boundary Loading</h3>
-            <p>To keep the page feeling instant while still supporting worldwide panning, the boundaries load in two phases. A simplified UK/Ireland polygon (~500 vertices, derived from Natural Earth 110m data) is embedded directly in the HTML. This lets the Scotland hexagon animation run within a couple hundred milliseconds of page load â€” no network request required.</p>
-            <p>In the background, the full worldwide Natural Earth dataset fetches asynchronously. Once it arrives, a spatial index is built and the system silently upgrades. The silver navigation hexagon only appears at this point, as a subtle signal that worldwide mode is ready.</p>
-            
-            <h3>Spatial Indexing</h3>
-            <p>The worldwide dataset contains ~195 country polygons. Without optimisation, every pan or zoom would require projecting all of them into screen coordinates â€” most of which aren't visible. To solve this, each country's bounding box is indexed in a simple R-tree structure on load. Before any coordinate conversion, a viewport query returns only the countries whose bounding boxes intersect the current map extent. Typically that's 1â€“5 polygons instead of 195.</p>
-            
-            <h3>Hexagonal Tessellation & Point-in-Polygon</h3>
-            <p>The hex grid uses flat-top orientation with standard offset coordinates: <code>hexWidth = √3 × size</code>, <code>rowHeight = 1.5 × size</code>, with odd rows shifted by <code>hexWidth / 2</code>. Each hex centre is tested against the screen-space boundary polygons using a ray-casting algorithm â€” casting a horizontal ray and counting edge crossings to determine inside/outside. Aberdeen (57.15°N, 2.09°W) is flagged within a 0.3° radius and rendered in red.</p>
-            
-            <h3>Animation</h3>
-            <p>Each hexagon animates via a <code>scaleY = cos(θ)</code> transform, creating the appearance of flipping in from edge-on. The animation staggers by row (50ms per row) with cubic ease-out and a small sine-wave bounce at the end. The entire animation re-runs whenever hexagons are regenerated â€” on pan, zoom, or resize.</p>
-            
-            <h3>Resize Handling</h3>
-            <p>Window resize is the trickiest part. The map container height is bound to the text column height, so resizing can change both simultaneously. All canvas drawing is suspended during resize (an <code>isResizing</code> flag gates every draw call), the canvas is hidden, and recalculation only fires after a 300ms debounce once the layout has settled. This prevents the stutter you'd otherwise see from repeated expensive polygon operations mid-resize.</p>
-            
-            <h3>Why a Single File?</h3>
-            <p>This is a portfolio piece, not a production application. The constraint of a single HTML file is actually a feature â€” it's portable, requires no build step, and can be opened from anywhere. The GIS techniques used here (spatial indexing, viewport culling, progressive loading) are the same ones you'd reach for in a production system, just implemented in a context where they have to pull their weight without any infrastructure behind them.</p>
-            
-            <p style="margin-top: 30px; font-size: 0.85rem; color: #8B7355; font-style: italic;">Press Escape or click outside to close.</p>
-        </div>
-    </div>
 
     <!-- LEAFLET -->
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1370,6 +1416,25 @@
     let navHexRevealed = false;     // one-shot: nav hex pop-in has fired
     let spatialIndex = null;       // Built once worldwide data arrives
     let geoJsonData = null;        // Current active boundary dataset
+
+    // ============================================================
+    // MAP HEIGHT: compute from text column, clamped to viewport
+    // ============================================================
+    function computeMapHeight(activeCase) {
+        const h1 = activeCase.querySelector('h1');
+        const description = activeCase.querySelector('.description');
+        const mc = document.getElementById('mapContainer');
+        if (!h1 || !description || !mc) return null;
+        const h1Top = h1.getBoundingClientRect().top;
+        const descBottom = description.getBoundingClientRect().bottom;
+        const textHeight = descBottom - h1Top;
+        // Never extend beyond the bottom of the viewport
+        const mapTop = mc.getBoundingClientRect().top;
+        const maxHeight = window.innerHeight - mapTop;
+        // Never narrower than 3:4 (width:height), i.e. min height = width * 4/3
+        const minHeight = mc.clientWidth * (4 / 3);
+        return Math.max(Math.min(textHeight, maxHeight), minHeight);
+    }
 
     // ============================================================
     // EMBEDDED UK/IRELAND BOUNDARIES (Natural Earth 110m, ~500 verts)
@@ -1587,15 +1652,13 @@
             return pts;
         }
 
-	// ADD THIS METHOD HERE:
-    	containsPoint(px, py) {
-        const dx = Math.abs(px - this.x);
-        const dy = Math.abs(py - this.y);
-        const s = this.size;
-        // Hexagonal distance check
-        return (dy <= s * 1.5 * 0.5) && (dx <= Math.sqrt(3) * s * 0.5) && 
-               (s * 0.5 * Math.sqrt(3) * s * 0.5 - dx * s * 0.5 - dy * Math.sqrt(3) * s * 0.5 / 3 >= 0);
-    }
+	containsPoint(px, py) {
+	    const dx = px - this.x;
+	    const dy = py - this.y;
+	    const distance = Math.sqrt(dx * dx + dy * dy);
+	    // Since your hex is size 12, size * 2 gives a comfortable 24px hit area
+	    return distance < (this.size * 2);
+	}
 
         startAnimation(now) {
             if (!this.startTime) this.startTime = now + this.animationDelay;
@@ -1622,6 +1685,7 @@
 
             // Nav hex: one-shot pop-in after land hexes complete
             if (this.isNavHex) {
+                window.navHex = this;
                 // Don't draw until we explicitly start the pop-in animation
                 if (!this.navPopStart) {
                     ctx.restore();
@@ -2080,10 +2144,7 @@
     let currentCaseStudy = null;
 
     function switchCaseStudy(caseId) {
-        
         if (currentCaseStudy === caseId) return;
-        // Ensure this is set immediately
-    	currentCaseStudy = caseId;
         
         const wasOnLanding = (currentCaseStudy === null);
         currentCaseStudy = caseId;
@@ -2133,12 +2194,8 @@
                     const activeCase = document.querySelector('.case-study.active');
                     const mapContainer = document.getElementById('mapContainer');
                     if (activeCase && mapContainer) {
-                        const h1 = activeCase.querySelector('h1');
-                        const description = activeCase.querySelector('.description');
-                        if (h1 && description) {
-                            const h1Top = h1.getBoundingClientRect().top;
-                            const descBottom = description.getBoundingClientRect().bottom;
-                            const height = descBottom - h1Top;
+                        const height = computeMapHeight(activeCase);
+                        if (height) {
                             mapContainer.style.height = height + 'px';
                             canvas.width = mapContainer.clientWidth;
                             canvas.height = mapContainer.clientHeight;
@@ -2269,7 +2326,157 @@
 
         // Initialize navigation system first
         initNavigation();
-        
+
+        // Nav hex hover -> keymap tooltip
+        // Registered before the early-return so it works whether we start on landing or case study
+        window.addEventListener('mousemove', (e) => {
+            if (!currentCaseStudy || !window.navHex) return;
+
+            const canvasEl = document.getElementById('canvas');
+            const tooltipEl = document.getElementById('keymapTooltip');
+            if (!canvasEl || !tooltipEl) return;
+
+            const r = canvasEl.getBoundingClientRect();
+            const x = e.clientX - r.left;
+            const y = e.clientY - r.top;
+
+            if (window.navHex.containsPoint(x, y)) {
+                canvasEl.style.cursor = 'help';
+                document.body.style.cursor = 'help';
+                tooltipEl.classList.add('visible');
+            } else {
+                if (tooltipEl.classList.contains('visible')) {
+                    canvasEl.style.cursor = '';
+                    document.body.style.cursor = '';
+                    tooltipEl.classList.remove('visible');
+                }
+            }
+        }, true);
+
+        canvas.addEventListener('mouseleave', () => {
+            const tooltipEl = document.getElementById('keymapTooltip');
+            if (tooltipEl) {
+                tooltipEl.classList.remove('visible');
+                canvas.style.cursor = '';
+                document.body.style.cursor = '';
+            }
+        });
+
+        // Keyboard shortcuts
+        // Registered before the early-return so they work whether we start on landing or case study
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('gisModal').classList.contains('visible')) return;
+            if (!currentCaseStudy || !map) return;
+
+            // Keys 1-5 for debug modes (5 = animation/mode 0)
+            if (e.key >= '1' && e.key <= '5') { 
+                const mode = e.key === '5' ? 0 : parseInt(e.key);
+                setDebugMode(mode); 
+                e.preventDefault(); 
+                return; 
+            }
+            
+            // Key 'i' for GIS modal
+            if (e.key.toLowerCase() === 'i') { 
+                document.getElementById('gisModal').classList.add('visible'); 
+                e.preventDefault(); 
+                return; 
+            }
+
+            // WASD for map panning, +/- for zoom
+            const c = map.getCenter(), z = map.getZoom(), p = 0.1;
+            switch (e.key.toLowerCase()) {
+                case 'w': map.setView([c.lat + p, c.lng]); e.preventDefault(); break;
+                case 's': map.setView([c.lat - p, c.lng]); e.preventDefault(); break;
+                case 'a': map.setView([c.lat, c.lng - p]); e.preventDefault(); break;
+                case 'd': map.setView([c.lat, c.lng + p]); e.preventDefault(); break;
+                case '+': case '=': map.setZoom(z + 1); e.preventDefault(); break;
+                case '-': case '_': map.setZoom(z - 1); e.preventDefault(); break;
+            }
+        });
+
+        // Unified resize handler for both case study maps and landing portrait
+        // Registered before the early-return so it works regardless of entry point
+        let resizeRAF = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(window._resizeTimeout);
+            if (resizeRAF) cancelAnimationFrame(resizeRAF);
+
+            // Immediately hide all hex content
+            if (canvas) {
+                isResizing = true;
+                canvas.style.opacity = '0';
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            if (landingCanvas && landingCtx) {
+                landingCtx.clearRect(0, 0, landingCanvas.width, landingCanvas.height);
+                landingCanvas.style.opacity = '0';
+            }
+
+            // Dynamically adjust layout during drag
+            resizeRAF = requestAnimationFrame(() => {
+                // Adjust case study map container height to match text column
+                if (currentCaseStudy && map) {
+                    const activeCase = document.querySelector('.case-study.active');
+                    const mc = document.getElementById('mapContainer');
+                    if (activeCase && mc) {
+                        const height = computeMapHeight(activeCase);
+                        if (height) mc.style.height = height + 'px';
+                        canvas.width = mc.clientWidth;
+                        canvas.height = mc.clientHeight;
+                        map.invalidateSize();
+                    }
+                }
+            });
+
+            // Debounce: after resize ends, fully reinitialize as if page just loaded
+            window._resizeTimeout = setTimeout(() => {
+                // Case study map
+                if (currentCaseStudy && map) {
+                    const activeCase = document.querySelector('.case-study.active');
+                    const mc = document.getElementById('mapContainer');
+                    if (activeCase && mc) {
+                        const height = computeMapHeight(activeCase);
+                        if (height) mc.style.height = height + 'px';
+                        canvas.width = mc.clientWidth;
+                        canvas.height = mc.clientHeight;
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        map.invalidateSize();
+                    }
+                    isResizing = false;
+                    if (debugMode === 0) {
+                        navHexRevealed = false;
+                        generateHexagons();
+                        canvas.style.opacity = '1';
+                        triggerAnimation();
+                    } else {
+                        setDebugMode(debugMode);
+                        canvas.style.opacity = '1';
+                    }
+                } else {
+                    isResizing = false;
+                }
+
+                // Landing portrait
+                if (!currentCaseStudy && landingCanvas) {
+                    const width = Math.floor(landingCanvas.getBoundingClientRect().width);
+                    if (width > 0) {
+                        landingCanvas.width = width;
+                        landingCanvas.height = width;
+                        landingCtx = landingCanvas.getContext('2d');
+                        const img = new Image();
+                        img.src = 'jurgen-portrait-cropped.png';
+                        img.onload = () => {
+                            landingHexagons = [];
+                            generateLandingHexagons(img);
+                            landingCanvas.style.opacity = '1';
+                            triggerLandingAnimation();
+                        };
+                    }
+                }
+            }, 300);
+        });
+
         // Only initialize map if we're showing a case study (not landing page)
         if (!currentCaseStudy) {
             // We're on landing page, no need to init map
@@ -2283,14 +2490,8 @@
         const activeCase = document.querySelector('.case-study.active');
         const mapContainer = document.getElementById('mapContainer');
         if (activeCase) {
-            const h1 = activeCase.querySelector('h1');
-            const description = activeCase.querySelector('.description');
-            if (h1 && description) {
-                const h1Top = h1.getBoundingClientRect().top;
-                const descBottom = description.getBoundingClientRect().bottom;
-                const height = descBottom - h1Top;
-                mapContainer.style.height = height + 'px';
-            }
+            const height = computeMapHeight(activeCase);
+            if (height) mapContainer.style.height = height + 'px';
         }
 
         canvas.width = mapContainer.clientWidth;
@@ -2362,112 +2563,11 @@
             else setDebugMode(debugMode);
         });
 
-        // Keyboard
-        document.addEventListener('keydown', (e) => {
-	    // Escape key should always work for the modal
-	    if (e.key === 'Escape') closeGISModal();
-	    
-	    // Only enable map controls if we are actually in a case study
-	    if (!currentCaseStudy) return;
 
-	    // Secret Debug Modes (0-5)
-	    if (e.key >= '0' && e.key <= '5') {
-		setDebugMode(parseInt(e.key));
-		e.preventDefault();
-		return;
-	    }
 
-	    // Key 'i' for the GIS Technical Modal
-	    if (e.key.toLowerCase() === 'i') {
-		document.getElementById('gisModal').classList.add('visible');
-		e.preventDefault();
-		return;
-	    }
 
-	    // WASD Map Panning & +- Zooming
-	    const c = map.getCenter();
-	    const z = map.getZoom();
-	    const p = 0.05; // Pan sensitivity
 
-	    switch (e.key.toLowerCase()) {
-		case 'w': map.setView([c.lat + p, c.lng]); e.preventDefault(); break;
-		case 's': map.setView([c.lat - p, c.lng]); e.preventDefault(); break;
-		case 'a': map.setView([c.lat, c.lng - p]); e.preventDefault(); break;
-		case 'd': map.setView([c.lat, c.lng + p]); e.preventDefault(); break;
-		case '+': case '=': map.setZoom(z + 1); e.preventDefault(); break;
-		case '-': case '_': map.setZoom(z - 1); e.preventDefault(); break;
-	    }
-	});
-	
-        // Nav hex hover â†’ keymap tooltip
-        // Nav hex hover -> keymap tooltip
-	const tooltip = document.getElementById('keymapTooltip');
-	canvas.addEventListener('mousemove', (e) => {
-	    if (!currentCaseStudy) return;
 
-	    const r = canvas.getBoundingClientRect();
-	    const x = e.clientX - r.left;
-	    const y = e.clientY - r.top;
-
-	    // Check if worldwide data is ready and navHex exists
-	    if (window.navHex && worldwideLoaded) {
-		const dx = x - window.navHex.x;
-		const dy = y - window.navHex.y;
-		const dist = Math.sqrt(dx * dx + dy * dy);
-
-		// Use a simple radius check (size * 1.2) for better "hit" feel
-		if (dist < window.navHex.size * 1.2) {
-		    tooltip.classList.add('visible');
-		    canvas.style.cursor = 'help';
-		} else {
-		    tooltip.classList.remove('visible');
-		    canvas.style.cursor = 'default';
-		}
-	    }
-	});
-        canvas.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
-
-        // Resize: hide canvas, debounce, recalc, show
-        let resizeRAF = null;
-        window.addEventListener('resize', () => {
-            isResizing = true;
-            if (resizeRAF) cancelAnimationFrame(resizeRAF);
-            canvas.style.opacity = '0';
-            clearTimeout(window._resizeTimeout);
-
-            resizeRAF = requestAnimationFrame(() => {
-                const activeCase = document.querySelector('.case-study.active');
-                const mc = document.getElementById('mapContainer');
-                if (activeCase && mc) {
-                    const h1 = activeCase.querySelector('h1');
-                    const description = activeCase.querySelector('.description');
-                    if (h1 && description) {
-                        const h1Top = h1.getBoundingClientRect().top;
-                        const descBottom = description.getBoundingClientRect().bottom;
-                        const height = descBottom - h1Top;
-                        mc.style.height = height + 'px';
-                    }
-                    
-                    // Resize canvas
-                    canvas.width = mc.clientWidth;
-                    canvas.height = mc.clientHeight;
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    map.invalidateSize();
-
-                    window._resizeTimeout = setTimeout(() => {
-                        isResizing = false;
-                        // Regenerate hexagons after resize
-                        if (debugMode === 0) { 
-                            generateHexagons(); 
-                            triggerAnimation(); 
-                        } else {
-                            setDebugMode(debugMode);
-                        }
-                        canvas.style.opacity = '1';
-                    }, 300);
-                }
-            });
-        });
     }
 
     function toggleDetails(caseStudyId) {
